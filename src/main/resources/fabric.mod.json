@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "zerovisual",
+	"version": "${version}",
+	"name": "ZeroVisual",
+	"description": "Free and open-source legit visual client: HUD, visuals and QoL. No cheats.",
+	"authors": [
+		"ZeroCoder407"
+	],
+	"contact": {
+		"homepage": "https://github.com/ZeroCoder407/ZeroVisual",
+		"sources": "https://github.com/ZeroCoder407/ZeroVisual",
+		"issues": "https://github.com/ZeroCoder407/ZeroVisual/issues"
+	},
+	"license": "GPL-3.0-only",
+	"icon": "assets/zerovisual/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.zerovisual.ZeroVisualClient"
+		],
+		"modmenu": [
+			"com.zerovisual.integration.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		"zerovisual.mixins.json"
+	],
+	"accessWidener": "zerovisual.accesswidener",
+	"depends": {
+		"fabricloader": ">=0.16.9",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"recommends": {
+		"modmenu": ">=13.0.0"
+	}
+}
