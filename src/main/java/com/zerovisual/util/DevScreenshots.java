@@ -33,6 +33,8 @@ public final class DevScreenshots {
 	private static int splashTicks;
 	private static int movingTicks;
 	private static int spinTicks;
+	/** Screenshots taken at a given tick, for effects that need several frames. */
+	private static final java.util.Map<Integer, String> timedShots = new java.util.HashMap<>();
 	private static String pendingShot;
 	private static int pendingShotTicks;
 
@@ -106,6 +108,7 @@ public final class DevScreenshots {
 			shot(mc, pendingShot);
 			pendingShot = null;
 		}
+		if (timedShots.containsKey(ticks)) shot(mc, timedShots.remove(ticks));
 		if (ticks < 100 || ticks % 30 != 0) return;
 
 		switch (step) {
@@ -196,6 +199,27 @@ public final class DevScreenshots {
 				// 0.25 s appear + 0.3 s whole, then a quarter of the shatter
 				pendingShot = "zv_world_shatter";
 				pendingShotTicks = 14;
+			}
+			case 16 -> {
+				// KillEffect black hole: a pig on the platform in front of the camera
+				mc.player.setPitch(10);
+				Vec3d front = mc.player.getPos().add(mc.player.getRotationVector().multiply(1, 0, 1).normalize().multiply(4));
+				runCommand(mc, String.format(java.util.Locale.ROOT, "summon pig %.2f %.2f %.2f {NoAI:1b}", front.x, front.y, front.z));
+				var kill = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.KillEffect.class);
+				kill.setEnabled(true);
+				kill.style.set("Black hole");
+			}
+			case 17 -> {
+				mc.world.getEntitiesByClass(PigEntity.class, mc.player.getBoundingBox().expand(8), e -> true)
+					.stream().findFirst().ifPresent(TargetTracker::onAttack);
+				runCommand(mc, "kill @e[type=pig]");
+				// descending, pulling the body in, collapsing with the shockwave
+				timedShots.put(ticks + 18, "zv_world_hole1");
+				timedShots.put(ticks + 40, "zv_world_hole2");
+				timedShots.put(ticks + 60, "zv_world_hole3");
+			}
+			case 18, 19 -> {
+				// wait for the timed screenshots
 			}
 			default -> mc.scheduleStop();
 		}

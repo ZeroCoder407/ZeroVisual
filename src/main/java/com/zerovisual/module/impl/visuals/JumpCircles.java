@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * Effect on the ground where you jump:
- * Circle - expanding ring; Star - the logo star grows and spins, slowing down;
+ * Circle - expanding ring; Star - the logo star grows and spins, slowing down, and fades with a small shockwave;
  * Shatter - the star appears, then breaks into its five rays which fly apart.
  */
 public class JumpCircles extends Module {
@@ -35,6 +35,8 @@ public class JumpCircles extends Module {
 	private static final float INNER = 0.40f;
 	private static final float APPEAR_SECONDS = 0.25f;
 	private static final float SHATTER_SECONDS = 0.6f;
+	/** Base opacity of the star, slightly see-through so it blends with the ground. */
+	private static final float STAR_ALPHA = 0.9f;
 
 	public final ModeSetting mode = add(new ModeSetting("Mode", "Circle", "Circle", "Star", "Shatter"));
 	public final NumberSetting radius = add(new NumberSetting("Radius", 1.2, 0.5, 3, 0.1));
@@ -126,6 +128,14 @@ public class JumpCircles extends Module {
 		float alpha = t < 0.7f ? 1f : 1f - (t - 0.7f) / 0.3f;
 		Matrix4f star = new Matrix4f(m).rotateZ((float) Math.toRadians(angle));
 		drawStar(star, size, alpha);
+		// a small shockwave while the star fades out
+		if (t > 0.68f) {
+			float w = (t - 0.68f) / 0.32f;
+			float r = radius.getFloat() * (0.35f + 0.95f * easeOut(w));
+			float fade = (1f - w) * 0.85f;
+			int a = ColorUtil.withAlpha(STAR_LEFT, fade), b = ColorUtil.withAlpha(STAR_RIGHT, fade);
+			Render2D.shape(m, -r, -r, r * 2, r * 2, r, 0.05f * (1f - w) + 0.015f, r * 0.12f, a, b, b, a);
+		}
 	}
 
 	/** Appears, stays whole for "Break after" seconds, then its five rays fly apart and fade. */
@@ -186,6 +196,7 @@ public class JumpCircles extends Module {
 	}
 
 	private static void vertex(BufferBuilder b, Matrix4f m, float x, float y, float r, float alpha) {
+		alpha *= STAR_ALPHA;
 		float t = Math.max(0f, Math.min(1f, (x + r) / (2 * r)));
 		b.vertex(m, x, y, 0).color(ColorUtil.withAlpha(ColorUtil.lerp(STAR_LEFT, STAR_RIGHT, t), alpha));
 	}
