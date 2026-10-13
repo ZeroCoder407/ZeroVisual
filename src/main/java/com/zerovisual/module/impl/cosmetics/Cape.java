@@ -14,7 +14,7 @@ public class Cape extends Module {
 	public final BooleanSetting elytra = add(new BooleanSetting("Elytra", true));
 
 	public Cape() {
-		super("Cape", "Плащ ZeroVisual (виден только вам)", Category.COSMETICS);
+		super("Cape", "ZeroVisual cape (only you can see it)", Category.COSMETICS);
 		setEnabled(true);
 	}
 

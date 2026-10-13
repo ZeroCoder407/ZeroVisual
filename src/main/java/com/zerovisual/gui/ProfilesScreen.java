@@ -5,6 +5,7 @@ import com.zerovisual.config.ConfigManager;
 import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -63,7 +64,7 @@ public class ProfilesScreen extends Screen {
 		nameField.setDrawsBackground(false);
 		nameField.setMaxLength(24);
 		nameField.setTextPredicate(s -> s.isEmpty() || ConfigManager.isValidProfileName(s));
-		nameField.setPlaceholder(Text.literal("Название профиля").formatted(Formatting.DARK_GRAY));
+		nameField.setPlaceholder(Text.translatable("zerovisual.profiles.placeholder").formatted(Formatting.DARK_GRAY));
 		nameField.setEditableColor(Theme.TEXT & 0xFFFFFF);
 		addDrawableChild(nameField);
 		setInitialFocus(nameField);
@@ -81,8 +82,8 @@ public class ProfilesScreen extends Screen {
 
 		Render2D.gradientV(ctx, x + 14, y + 13, 14, 14, 4, Theme.accentLight(), Theme.accent());
 		Render2D.centeredText(ctx, "☰", x + 21.5f, y + 16, 0xFFFFFFFF);
-		Render2D.text(ctx, "Профили", x + 36, y + 12, Theme.TEXT);
-		Render2D.text(ctx, "Наборы настроек всех модулей", x + 36, y + 22, Theme.TEXT_DIM);
+		Render2D.text(ctx, I18n.translate("zerovisual.profiles.title"), x + 36, y + 12, Theme.TEXT);
+		Render2D.text(ctx, I18n.translate("zerovisual.profiles.subtitle"), x + 36, y + 22, Theme.TEXT_DIM);
 
 		boolean focused = nameField != null && nameField.isFocused();
 		Render2D.rect(ctx, x + 14, y + 43, 166, 22, 7, Theme.SURFACE);
@@ -95,10 +96,10 @@ public class ProfilesScreen extends Screen {
 		super.render(ctx, mouseX, mouseY, delta);
 		Render2D.setAlpha(openAnim.get());
 		float x = panelX(), y = panelY();
-		button(ctx, "save", "Сохранить", x + 186, y + 43, 80, 22, mouseX, mouseY, true);
+		button(ctx, "save", I18n.translate("zerovisual.button.save"), x + 186, y + 43, 80, 22, mouseX, mouseY, true);
 		renderList(ctx, mouseX, mouseY);
-		button(ctx, "done", "Готово", x + W - 66, y + panelH() - 32, 52, 20, mouseX, mouseY, true);
-		Render2D.text(ctx, "ЛКМ — загрузить, ✕ — удалить", x + 14, y + panelH() - 26, 0xFF4E4E5C);
+		button(ctx, "done", I18n.translate("zerovisual.button.done"), x + W - 66, y + panelH() - 32, 52, 20, mouseX, mouseY, true);
+		Render2D.text(ctx, I18n.translate("zerovisual.profiles.hint"), x + 14, y + panelH() - 26, 0xFF4E4E5C);
 		if (!status.isEmpty()) Render2D.centeredText(ctx, status, width / 2f, y + panelH() + 8, statusColor);
 		Render2D.setAlpha(1f);
 	}
@@ -107,8 +108,8 @@ public class ProfilesScreen extends Screen {
 		float x = panelX() + 14, y = listY(), w = W - 28;
 		scroll = Math.max(0, Math.min(scroll, profiles.size() - VISIBLE_ROWS));
 		if (profiles.isEmpty()) {
-			Render2D.centeredText(ctx, "Профилей пока нет", x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 - 8, Theme.TEXT_DIM);
-			Render2D.centeredText(ctx, "Введите название и нажмите «Сохранить»", x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 + 4, 0xFF4E4E5C);
+			Render2D.centeredText(ctx, I18n.translate("zerovisual.profiles.empty"), x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 - 8, Theme.TEXT_DIM);
+			Render2D.centeredText(ctx, I18n.translate("zerovisual.profiles.empty.hint"), x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 + 4, 0xFF4E4E5C);
 			return;
 		}
 		for (int i = 0; i < VISIBLE_ROWS && i + scroll < profiles.size(); i++) {
@@ -161,11 +162,11 @@ public class ProfilesScreen extends Screen {
 				if (mx >= lx + lw - 20) {
 					config.deleteProfile(name);
 					profiles = config.listProfiles();
-					setStatus("Удалён профиль " + name, Theme.TEXT_DIM);
+					setStatus(I18n.translate("zerovisual.profiles.deleted", name), Theme.TEXT_DIM);
 				} else if (config.loadProfile(name)) {
-					setStatus("Загружен профиль " + name, Theme.accentLight());
+					setStatus(I18n.translate("zerovisual.profiles.loaded", name), Theme.accentLight());
 				} else {
-					setStatus("Не удалось загрузить " + name, 0xFFFF5C6C);
+					setStatus(I18n.translate("zerovisual.profiles.load_failed", name), 0xFFFF5C6C);
 				}
 				return true;
 			}
@@ -191,16 +192,16 @@ public class ProfilesScreen extends Screen {
 	private void saveFromField() {
 		String name = nameField.getText().trim();
 		if (!ConfigManager.isValidProfileName(name)) {
-			setStatus("Название: 1-24 символа, буквы, цифры, пробел, _ и -", 0xFFFF5C6C);
+			setStatus(I18n.translate("zerovisual.profiles.invalid"), 0xFFFF5C6C);
 			return;
 		}
 		boolean existed = profiles.contains(name);
 		if (config.saveProfile(name)) {
 			profiles = config.listProfiles();
 			nameField.setText("");
-			setStatus((existed ? "Перезаписан профиль " : "Сохранён профиль ") + name, Theme.TEXT_MUTED);
+			setStatus(I18n.translate(existed ? "zerovisual.profiles.overwritten" : "zerovisual.profiles.saved", name), Theme.TEXT_MUTED);
 		} else {
-			setStatus("Не удалось сохранить профиль", 0xFFFF5C6C);
+			setStatus(I18n.translate("zerovisual.profiles.save_failed"), 0xFFFF5C6C);
 		}
 	}
 

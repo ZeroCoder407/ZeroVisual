@@ -6,6 +6,7 @@ import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.waypoint.WaypointManager;
 import com.zerovisual.waypoint.WaypointManager.Waypoint;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -64,7 +65,7 @@ public class WaypointsScreen extends Screen {
 		nameField = new TextFieldWidget(textRenderer, (int) x + 22, (int) y + 50, 170, 10, Text.literal("Name"));
 		nameField.setDrawsBackground(false);
 		nameField.setMaxLength(32);
-		nameField.setPlaceholder(Text.literal("Название точки").formatted(Formatting.DARK_GRAY));
+		nameField.setPlaceholder(Text.translatable("zerovisual.waypoints.placeholder").formatted(Formatting.DARK_GRAY));
 		nameField.setEditableColor(Theme.TEXT & 0xFFFFFF);
 		addDrawableChild(nameField);
 		setInitialFocus(nameField);
@@ -81,7 +82,7 @@ public class WaypointsScreen extends Screen {
 
 		Render2D.gradientV(ctx, x + 14, y + 13, 14, 14, 4, Theme.accentLight(), Theme.accent());
 		Render2D.centeredText(ctx, "◆", x + 21.5f, y + 16, 0xFFFFFFFF);
-		Render2D.text(ctx, "Точки", x + 36, y + 12, Theme.TEXT);
+		Render2D.text(ctx, I18n.translate("zerovisual.waypoints.title"), x + 36, y + 12, Theme.TEXT);
 		String world = WaypointManager.worldKey().replaceFirst("^(sp|mp):", "");
 		Render2D.text(ctx, world + "  •  " + WaypointManager.currentDimension().replace("minecraft:", ""), x + 36, y + 22, Theme.TEXT_DIM);
 
@@ -96,9 +97,9 @@ public class WaypointsScreen extends Screen {
 		super.render(ctx, mouseX, mouseY, delta);
 		Render2D.setAlpha(openAnim.get());
 		float x = panelX(), y = panelY();
-		button(ctx, "add", "Добавить", x + 206, y + 43, 80, 22, mouseX, mouseY);
+		button(ctx, "add", I18n.translate("zerovisual.button.add"), x + 206, y + 43, 80, 22, mouseX, mouseY);
 		renderList(ctx, mouseX, mouseY);
-		Render2D.text(ctx, "ЛКМ — скрыть/показать, ПКМ — цвет, ✕ — удалить", x + 14, y + panelH() - 22, 0xFF4E4E5C);
+		Render2D.text(ctx, I18n.translate("zerovisual.waypoints.hint"), x + 14, y + panelH() - 22, 0xFF4E4E5C);
 		Render2D.setAlpha(1f);
 	}
 
@@ -107,8 +108,8 @@ public class WaypointsScreen extends Screen {
 		List<Waypoint> list = manager.current();
 		scroll = Math.max(0, Math.min(scroll, list.size() - VISIBLE_ROWS));
 		if (list.isEmpty()) {
-			Render2D.centeredText(ctx, "Точек пока нет", x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 - 8, Theme.TEXT_DIM);
-			Render2D.centeredText(ctx, "Встаньте на место и нажмите «Добавить»", x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 + 4, 0xFF4E4E5C);
+			Render2D.centeredText(ctx, I18n.translate("zerovisual.waypoints.empty"), x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 - 8, Theme.TEXT_DIM);
+			Render2D.centeredText(ctx, I18n.translate("zerovisual.waypoints.empty.hint"), x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 + 4, 0xFF4E4E5C);
 			return;
 		}
 		String dimension = WaypointManager.currentDimension();
@@ -195,7 +196,7 @@ public class WaypointsScreen extends Screen {
 	private void addHere() {
 		if (client == null || client.player == null) return;
 		String name = nameField.getText().trim();
-		if (name.isEmpty()) name = "Точка " + (manager.current().size() + 1);
+		if (name.isEmpty()) name = I18n.translate("zerovisual.waypoints.default_name", manager.current().size() + 1);
 		manager.add(name, client.player.getBlockX(), client.player.getBlockY(), client.player.getBlockZ());
 		nameField.setText("");
 		scroll = Math.max(0, manager.current().size() - VISIBLE_ROWS);

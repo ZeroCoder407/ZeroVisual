@@ -32,7 +32,7 @@ public class BlockOutline extends Module {
 		.visibleWhen(fill::get));
 
 	public BlockOutline() {
-		super("BlockOutline", "Цветная обводка и заливка блока под прицелом", Category.VISUALS);
+		super("BlockOutline", "Colored outline and fill of the targeted block", Category.VISUALS);
 	}
 
 	/** @return false to cancel the vanilla outline */

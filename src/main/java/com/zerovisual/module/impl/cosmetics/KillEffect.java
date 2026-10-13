@@ -35,7 +35,7 @@ public class KillEffect extends Module {
 	private LivingEntity watched;
 
 	public KillEffect() {
-		super("KillEffect", "Эффект при убийстве цели (виден только вам)", Category.COSMETICS);
+		super("KillEffect", "Effect when you kill a target (only you see it)", Category.COSMETICS);
 	}
 
 	@Override

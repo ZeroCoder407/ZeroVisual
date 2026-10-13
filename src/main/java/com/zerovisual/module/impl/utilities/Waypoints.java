@@ -15,6 +15,7 @@ import com.zerovisual.waypoint.WaypointManager;
 import com.zerovisual.waypoint.WaypointManager.Waypoint;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -43,7 +44,7 @@ public class Waypoints extends Module {
 	private boolean wasDead;
 
 	public Waypoints() {
-		super("Waypoints", "Свои точки в мире с расстоянием (по умолчанию J — список)", Category.UTILITIES);
+		super("Waypoints", "Your own waypoints with distance (J opens the list by default)", Category.UTILITIES);
 		setEnabled(true);
 	}
 
@@ -61,7 +62,7 @@ public class Waypoints extends Module {
 		boolean dead = mc.player.isDead();
 		if (dead && !wasDead && deathPoint.get()) {
 			String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
-			Waypoint waypoint = ZeroVisualClient.get().waypoints().add("Смерть " + time,
+			Waypoint waypoint = ZeroVisualClient.get().waypoints().add(I18n.translate("zerovisual.waypoints.death", time),
 				mc.player.getBlockX(), mc.player.getBlockY(), mc.player.getBlockZ());
 			waypoint.color = 0xFFF43F5E;
 			ZeroVisualClient.get().waypoints().save();

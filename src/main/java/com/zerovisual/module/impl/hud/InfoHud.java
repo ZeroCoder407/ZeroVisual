@@ -5,6 +5,7 @@ import com.zerovisual.module.HudModule;
 import com.zerovisual.render.Anim;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.setting.BooleanSetting;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.network.ServerInfo;
@@ -24,7 +25,7 @@ public class InfoHud extends HudModule {
 	private float speedPerSecond;
 
 	public InfoHud() {
-		super("InfoHUD", "Пинг, скорость и адрес сервера");
+		super("InfoHUD", "Ping, speed and server address");
 	}
 
 	@Override
@@ -62,7 +63,7 @@ public class InfoHud extends HudModule {
 		}
 		if (server.get()) {
 			ServerInfo info = mc.getCurrentServerEntry();
-			rows.add(new String[]{"Server", info != null ? info.address : "Одиночная игра"});
+			rows.add(new String[]{"Server", info != null ? info.address : I18n.translate("zerovisual.hud.info.singleplayer")});
 		}
 		if (rows.isEmpty()) return;
 

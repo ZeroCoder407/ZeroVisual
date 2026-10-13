@@ -28,7 +28,7 @@ public class TargetEsp extends Module {
 	private LivingEntity shown;
 
 	public TargetEsp() {
-		super("TargetESP", "Указатель на цели, по которой вы бьёте (не сквозь стены)", Category.VISUALS);
+		super("TargetESP", "Marker on the target you are hitting (not through walls)", Category.VISUALS);
 	}
 
 	public void render(WorldRenderContext context) {

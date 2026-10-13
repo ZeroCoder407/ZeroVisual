@@ -45,7 +45,7 @@ public class HitParticles extends Module {
 	private long lastFrame;
 
 	public HitParticles() {
-		super("HitParticles", "Светящиеся звёзды при ударе по цели", Category.COSMETICS);
+		super("HitParticles", "Glowing stars when you hit a target", Category.COSMETICS);
 	}
 
 	@Override

@@ -12,7 +12,7 @@ import net.minecraft.client.util.InputUtil;
  */
 public class AutoSprint extends Module {
 	public AutoSprint() {
-		super("AutoSprint", "Автоматический бег при движении вперёд", Category.UTILITIES);
+		super("AutoSprint", "Sprint automatically while moving forward", Category.UTILITIES);
 	}
 
 	@Override

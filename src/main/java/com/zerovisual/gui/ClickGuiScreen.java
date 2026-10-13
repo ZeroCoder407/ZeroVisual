@@ -9,6 +9,7 @@ import com.zerovisual.module.impl.utilities.ClickGui;
 import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
@@ -137,7 +138,7 @@ public class ClickGuiScreen extends Screen {
 		Render2D.rect(ctx, x + 14, y + 12, 3, 1.4f, 0.7f, iconColor);
 
 		boolean empty = search.isEmpty();
-		String shown = empty && !searchFocused ? "Поиск модулей..." : search;
+		String shown = empty && !searchFocused ? I18n.translate("zerovisual.gui.search") : search;
 		if (searchFocused && (System.currentTimeMillis() / 500) % 2 == 0) shown += "_";
 		Render2D.text(ctx, shown, x + 22, y + 6, empty ? Theme.TEXT_DIM : Theme.TEXT);
 
@@ -147,7 +148,7 @@ public class ClickGuiScreen extends Screen {
 		Render2D.shadow(ctx, bx, y + 2, bw, SEARCH_H, 8, 10, 0x80000000);
 		Render2D.rect(ctx, bx, y, bw, SEARCH_H, 8, ColorUtil.lerp(Theme.BACKGROUND, 0xF0181822, hv));
 		Render2D.outline(ctx, bx, y, bw, SEARCH_H, 8, 1, ColorUtil.lerp(0x14FFFFFF, accent, hv));
-		Render2D.centeredText(ctx, "☰ Профили", bx + bw / 2, y + 6, ColorUtil.lerp(Theme.TEXT_MUTED, Theme.TEXT, hv));
+		Render2D.centeredText(ctx, "☰ " + I18n.translate("zerovisual.profiles.title"), bx + bw / 2, y + 6, ColorUtil.lerp(Theme.TEXT_MUTED, Theme.TEXT, hv));
 	}
 
 	private float profilesX() {

@@ -29,7 +29,7 @@ public class Crosshair extends Module {
 	private final Anim spread = new Anim(12f, 0f);
 
 	public Crosshair() {
-		super("Crosshair", "Свой прицел: стиль, размер, цвет, динамика", Category.VISUALS);
+		super("Crosshair", "Custom crosshair: style, size, color, dynamic", Category.VISUALS);
 	}
 
 	public void draw(DrawContext ctx) {

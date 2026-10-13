@@ -22,7 +22,7 @@ public class Zoom extends Module {
 	private final Anim anim = new Anim(14f, 1f);
 
 	public Zoom() {
-		super("Zoom", "Приближение камеры, пока зажата клавиша (по умолчанию C)", Category.VISUALS);
+		super("Zoom", "Zoom the camera while the key is held (C by default)", Category.VISUALS);
 		setEnabled(true);
 	}
 

@@ -17,7 +17,7 @@ public class Halo extends Module {
 	public final BooleanSetting others = add(new BooleanSetting("Other players", false));
 
 	public Halo() {
-		super("Halo", "Светящийся нимб над головой", Category.COSMETICS);
+		super("Halo", "Glowing halo above your head", Category.COSMETICS);
 	}
 
 	public void render(WorldRenderContext context) {

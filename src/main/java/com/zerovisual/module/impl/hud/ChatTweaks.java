@@ -27,7 +27,7 @@ public class ChatTweaks extends Module {
 	private final Map<Object, Long> firstSeen = Collections.synchronizedMap(new WeakHashMap<>());
 
 	public ChatTweaks() {
-		super("ChatTweaks", "Прозрачность фона чата, анимация и время сообщений", Category.HUD);
+		super("ChatTweaks", "Chat background opacity, animation and message time", Category.HUD);
 	}
 
 	public Text addTimestamp(Text message) {

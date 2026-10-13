@@ -19,7 +19,7 @@ public class HitColor extends Module {
 	public final NumberSetting opacity = add(new NumberSetting("Opacity", 0.7, 0.1, 1, 0.05));
 
 	public HitColor() {
-		super("HitColor", "Цвет подсветки сущностей при ударе", Category.VISUALS);
+		super("HitColor", "Entity hurt tint color", Category.VISUALS);
 	}
 
 	/** Overlay color to upload, or the vanilla one while disabled. */

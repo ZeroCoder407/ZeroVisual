@@ -33,7 +33,7 @@ public class Wings extends Module {
 	public final BooleanSetting others = add(new BooleanSetting("Other players", false));
 
 	public Wings() {
-		super("Wings", "Крылья за спиной (вид от 3-го лица)", Category.COSMETICS);
+		super("Wings", "Wings on your back (third-person view)", Category.COSMETICS);
 	}
 
 	public void render(WorldRenderContext context) {

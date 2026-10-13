@@ -5,6 +5,7 @@ import com.zerovisual.gui.Theme;
 import com.zerovisual.module.HudModule;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.setting.BooleanSetting;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -19,7 +20,7 @@ public class Potions extends HudModule {
 	public final BooleanSetting hideVanilla = add(new BooleanSetting("Hide vanilla icons", true));
 
 	public Potions() {
-		super("Potions", "Активные эффекты и их время");
+		super("Potions", "Active effects and their time");
 		setEnabled(true);
 	}
 
@@ -57,9 +58,9 @@ public class Potions extends HudModule {
 		if (rows.isEmpty()) {
 			// placeholder so the card can be positioned in the chat
 			if (!isEditing()) return;
-			rows.add(new String[]{"Нет эффектов", ""});
+			rows.add(new String[]{I18n.translate("zerovisual.hud.potions.empty"), ""});
 			colors.add(Theme.TEXT_DIM);
-			nameW = Render2D.textWidth("Нет эффектов");
+			nameW = Render2D.textWidth(I18n.translate("zerovisual.hud.potions.empty"));
 		}
 
 		float rowH = 12;

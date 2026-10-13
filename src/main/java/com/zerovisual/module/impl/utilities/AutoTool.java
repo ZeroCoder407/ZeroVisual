@@ -20,7 +20,7 @@ public class AutoTool extends Module {
 	public final BooleanSetting onlyWhileMining = add(new BooleanSetting("Only while mining", true));
 
 	public AutoTool() {
-		super("AutoTool", "Подсвечивает лучший инструмент для блока в хотбаре", Category.UTILITIES);
+		super("AutoTool", "Highlights the best hotbar tool for the block", Category.UTILITIES);
 	}
 
 	/** Drawn on the HUD after the vanilla hotbar. */

@@ -38,7 +38,7 @@ public class DamageNumbers extends Module {
 	private final Random random = new Random();
 
 	public DamageNumbers() {
-		super("DamageNumbers", "Всплывающие цифры урона и лечения", Category.VISUALS);
+		super("DamageNumbers", "Floating damage and healing numbers", Category.VISUALS);
 	}
 
 	@Override

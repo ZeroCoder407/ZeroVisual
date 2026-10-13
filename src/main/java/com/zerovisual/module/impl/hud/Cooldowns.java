@@ -3,6 +3,7 @@ package com.zerovisual.module.impl.hud;
 import com.zerovisual.gui.Theme;
 import com.zerovisual.module.HudModule;
 import com.zerovisual.render.Render2D;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.entity.player.PlayerInventory;
@@ -23,7 +24,7 @@ public class Cooldowns extends HudModule {
 	private final Map<Identifier, double[]> tracking = new HashMap<>();
 
 	public Cooldowns() {
-		super("Cooldowns", "Кулдауны предметов: жемчуг, хорус и другие");
+		super("Cooldowns", "Item cooldowns: ender pearl, chorus fruit and more");
 		setEnabled(true);
 	}
 
@@ -63,7 +64,7 @@ public class Cooldowns extends HudModule {
 		Render2D.rect(ctx, x + 6, y + 17, W - 12, 1, 0.5f, 0x20FFFFFF);
 
 		if (active.isEmpty()) {
-			Render2D.text(ctx, "Нет кулдаунов", x + 8, y + 24, Theme.TEXT_DIM);
+			Render2D.text(ctx, I18n.translate("zerovisual.hud.cooldowns.empty"), x + 8, y + 24, Theme.TEXT_DIM);
 			return;
 		}
 

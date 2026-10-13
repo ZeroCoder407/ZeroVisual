@@ -33,7 +33,7 @@ public class TargetHud extends HudModule {
 	private LivingEntity shown;
 
 	public TargetHud() {
-		super("TargetHUD", "Здоровье, броня и дистанция до цели");
+		super("TargetHUD", "Health, armor and distance of your target");
 	}
 
 	private LivingEntity currentTarget() {

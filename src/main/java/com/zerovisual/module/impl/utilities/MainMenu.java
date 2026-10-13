@@ -17,7 +17,7 @@ public class MainMenu extends Module {
 	public final BooleanSetting roundedButtons = add(new BooleanSetting("Rounded buttons", true));
 
 	public MainMenu() {
-		super("MainMenu", "Фон главного меню и кнопка аккаунтов", Category.UTILITIES);
+		super("MainMenu", "Main menu background and account button", Category.UTILITIES);
 	}
 
 	@Override

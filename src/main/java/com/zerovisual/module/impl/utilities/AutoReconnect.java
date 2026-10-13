@@ -26,7 +26,7 @@ public class AutoReconnect extends Module {
 	private ServerInfo lastServer;
 
 	public AutoReconnect() {
-		super("AutoReconnect", "Кнопка и таймер переподключения к серверу", Category.UTILITIES);
+		super("AutoReconnect", "Reconnect button and timer on disconnect", Category.UTILITIES);
 		setEnabled(true);
 	}
 
@@ -50,7 +50,7 @@ public class AutoReconnect extends Module {
 		Screens.getButtons(screen).add(reconnect);
 
 		if (deadline[0] > 0) {
-			ButtonWidget cancel = ButtonWidget.builder(Text.literal("Отменить автоподключение"), b -> {
+			ButtonWidget cancel = ButtonWidget.builder(Text.translatable("zerovisual.reconnect.cancel"), b -> {
 				deadline[0] = 0;
 				reconnect.setMessage(label(0));
 				b.visible = false;
@@ -70,9 +70,9 @@ public class AutoReconnect extends Module {
 	}
 
 	private static Text label(long deadline) {
-		if (deadline == 0) return Text.literal("Переподключиться");
+		if (deadline == 0) return Text.translatable("zerovisual.reconnect");
 		long seconds = Math.max(0, (deadline - System.currentTimeMillis() + 999) / 1000);
-		return Text.literal("Переподключиться (" + seconds + ")");
+		return Text.translatable("zerovisual.reconnect.timer", seconds);
 	}
 
 	private void reconnect(ServerInfo server) {

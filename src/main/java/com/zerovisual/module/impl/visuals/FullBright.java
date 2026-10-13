@@ -9,6 +9,6 @@ public class FullBright extends Module {
 	public final NumberSetting brightness = add(new NumberSetting("Brightness", 10, 1, 15, 0.5));
 
 	public FullBright() {
-		super("FullBright", "Яркость без ограничений: видно в темноте", Category.VISUALS);
+		super("FullBright", "Unlimited brightness: see in the dark", Category.VISUALS);
 	}
 }

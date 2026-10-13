@@ -9,6 +9,6 @@ public class TimeChanger extends Module {
 	public final NumberSetting time = add(new NumberSetting("Time", 18000, 0, 24000, 250));
 
 	public TimeChanger() {
-		super("TimeChanger", "Своё время суток (видно только вам)", Category.VISUALS);
+		super("TimeChanger", "Your own time of day (only you see it)", Category.VISUALS);
 	}
 }

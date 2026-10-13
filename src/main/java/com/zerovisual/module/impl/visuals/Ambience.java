@@ -17,7 +17,7 @@ public class Ambience extends Module {
 	public final NumberSetting fogStrength = add(new NumberSetting("Fog", 0.4, 0, 1, 0.05));
 
 	public Ambience() {
-		super("Ambience", "Цвет неба и тумана", Category.VISUALS);
+		super("Ambience", "Sky and fog color", Category.VISUALS);
 	}
 
 	private int tint() {

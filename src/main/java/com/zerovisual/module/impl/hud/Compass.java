@@ -16,7 +16,7 @@ public class Compass extends HudModule {
 	private static final String[] NAMES = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
 
 	public Compass() {
-		super("Compass", "Компас-лента с направлениями");
+		super("Compass", "Compass strip with directions");
 	}
 
 	@Override

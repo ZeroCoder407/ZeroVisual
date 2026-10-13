@@ -27,7 +27,7 @@ public class HitSound extends Module {
 	private final Random random = new Random();
 
 	public HitSound() {
-		super("HitSound", "Звук попадания по цели (слышите только вы)", Category.COSMETICS);
+		super("HitSound", "Hit sound on your target (only you hear it)", Category.COSMETICS);
 	}
 
 	public void onAttack(Entity target) {

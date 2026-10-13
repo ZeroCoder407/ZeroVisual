@@ -25,7 +25,7 @@ public class FireFlies extends Module {
 	private long lastFrame;
 
 	public FireFlies() {
-		super("FireFlies", "Светлячки, летающие вокруг вас", Category.COSMETICS);
+		super("FireFlies", "Glowing fireflies flying around you", Category.COSMETICS);
 	}
 
 	@Override

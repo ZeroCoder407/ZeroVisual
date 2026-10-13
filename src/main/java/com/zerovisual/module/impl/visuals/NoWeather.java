@@ -6,6 +6,6 @@ import com.zerovisual.module.Module;
 /** Hides rain, snow and thunder on your client. Applied in WorldMixin. */
 public class NoWeather extends Module {
 	public NoWeather() {
-		super("NoWeather", "Убирает дождь, снег и грозу (только у вас)", Category.VISUALS);
+		super("NoWeather", "Removes rain, snow and thunder (only for you)", Category.VISUALS);
 	}
 }

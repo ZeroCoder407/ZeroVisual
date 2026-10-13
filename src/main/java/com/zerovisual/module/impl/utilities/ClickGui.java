@@ -20,7 +20,7 @@ public class ClickGui extends Module {
 	public final BooleanSetting blur = add(new BooleanSetting("Blur", true));
 
 	public ClickGui() {
-		super("ClickGUI", "Меню клиента и его оформление", Category.UTILITIES);
+		super("ClickGUI", "Client menu and its look", Category.UTILITIES);
 		setKey(GLFW.GLFW_KEY_RIGHT_SHIFT);
 	}
 

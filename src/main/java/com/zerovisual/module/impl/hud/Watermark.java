@@ -16,7 +16,7 @@ public class Watermark extends HudModule {
 	public final BooleanSetting showTime = add(new BooleanSetting("Time", true));
 
 	public Watermark() {
-		super("Watermark", "Логотип клиента, FPS и время");
+		super("Watermark", "Client logo, FPS and time");
 		setEnabled(true);
 	}
 

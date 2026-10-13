@@ -27,7 +27,7 @@ public class ModuleList extends HudModule {
 	private final Map<Module, Anim> anims = new HashMap<>();
 
 	public ModuleList() {
-		super("ModuleList", "Список включённых модулей");
+		super("ModuleList", "List of enabled modules");
 		setEnabled(true);
 	}
 

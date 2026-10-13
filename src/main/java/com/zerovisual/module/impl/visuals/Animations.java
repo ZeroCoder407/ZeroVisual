@@ -19,7 +19,7 @@ public class Animations extends Module {
 	public final BooleanSetting noEquip = add(new BooleanSetting("No re-equip", false));
 
 	public Animations() {
-		super("Animations", "Стиль анимации удара и скорость взмаха", Category.VISUALS);
+		super("Animations", "Swing animation style and speed", Category.VISUALS);
 	}
 
 	/** Hand swing duration in ticks for the local player (vanilla is 6). */

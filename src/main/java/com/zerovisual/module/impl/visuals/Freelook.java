@@ -27,7 +27,7 @@ public class Freelook extends Module {
 	private Perspective previousPerspective;
 
 	public Freelook() {
-		super("Freelook", "Обзор камерой без поворота персонажа (по умолчанию Alt). На некоторых серверах запрещён", Category.VISUALS);
+		super("Freelook", "Look around without turning your character (Alt by default). Not allowed on some servers", Category.VISUALS);
 	}
 
 	public static void registerKeyBinding() {

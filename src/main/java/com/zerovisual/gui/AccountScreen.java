@@ -5,6 +5,7 @@ import com.zerovisual.account.AccountManager;
 import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.gui.screen.Screen;
@@ -65,7 +66,7 @@ public class AccountScreen extends Screen {
 		nameField.setDrawsBackground(false);
 		nameField.setMaxLength(16);
 		nameField.setTextPredicate(s -> s.matches("[A-Za-z0-9_]*"));
-		nameField.setPlaceholder(Text.literal("Ник (3-16 символов)").formatted(Formatting.DARK_GRAY));
+		nameField.setPlaceholder(Text.translatable("zerovisual.account.placeholder").formatted(Formatting.DARK_GRAY));
 		nameField.setEditableColor(Theme.TEXT & 0xFFFFFF);
 		addDrawableChild(nameField);
 		setInitialFocus(nameField);
@@ -88,8 +89,8 @@ public class AccountScreen extends Screen {
 		// header
 		Render2D.gradientV(ctx, x + 14, y + 13, 14, 14, 4, Theme.accentLight(), Theme.accent());
 		Render2D.centeredText(ctx, "☺", x + 21.5f, y + 16, 0xFFFFFFFF);
-		Render2D.text(ctx, "Аккаунты", x + 36, y + 12, Theme.TEXT);
-		Render2D.text(ctx, "Текущий: " + accounts.currentName(), x + 36, y + 22, Theme.TEXT_DIM);
+		Render2D.text(ctx, I18n.translate("zerovisual.account.title"), x + 36, y + 12, Theme.TEXT);
+		Render2D.text(ctx, I18n.translate("zerovisual.account.current", accounts.currentName()), x + 36, y + 22, Theme.TEXT_DIM);
 
 		// input box (the text field itself is drawn on top by the widget)
 		boolean focused = nameField != null && nameField.isFocused();
@@ -104,16 +105,16 @@ public class AccountScreen extends Screen {
 		Render2D.setAlpha(openAnim.get());
 
 		float x = panelX(), y = panelY();
-		button(ctx, "add", "Добавить", x + 186, y + 43, 80, 22, mouseX, mouseY, true);
+		button(ctx, "add", I18n.translate("zerovisual.button.add"), x + 186, y + 43, 80, 22, mouseX, mouseY, true);
 
 		renderList(ctx, mouseX, mouseY);
 
 		float by = y + panelH() - 32;
-		button(ctx, "random", "Случайный ник", x + 14, by, 100, 20, mouseX, mouseY, false);
+		button(ctx, "random", I18n.translate("zerovisual.account.random"), x + 14, by, 100, 20, mouseX, mouseY, false);
 		if (!accounts.isOriginal()) {
-			button(ctx, "restore", "Вернуть " + accounts.originalName(), x + 118, by, 92, 20, mouseX, mouseY, false);
+			button(ctx, "restore", I18n.translate("zerovisual.account.restore", accounts.originalName()), x + 118, by, 92, 20, mouseX, mouseY, false);
 		}
-		button(ctx, "done", "Готово", x + W - 14 - 52, by, 52, 20, mouseX, mouseY, true);
+		button(ctx, "done", I18n.translate("zerovisual.button.done"), x + W - 14 - 52, by, 52, 20, mouseX, mouseY, true);
 
 		if (!status.isEmpty()) Render2D.centeredText(ctx, status, width / 2f, y + panelH() + 8, statusColor);
 		Render2D.setAlpha(1f);
@@ -125,8 +126,8 @@ public class AccountScreen extends Screen {
 		scroll = Math.max(0, Math.min(scroll, list.size() - VISIBLE_ROWS));
 
 		if (list.isEmpty()) {
-			Render2D.centeredText(ctx, "Пока нет аккаунтов", x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 - 8, Theme.TEXT_DIM);
-			Render2D.centeredText(ctx, "Введите ник и нажмите «Добавить»", x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 + 4, 0xFF4E4E5C);
+			Render2D.centeredText(ctx, I18n.translate("zerovisual.account.empty"), x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 - 8, Theme.TEXT_DIM);
+			Render2D.centeredText(ctx, I18n.translate("zerovisual.account.empty.hint"), x + w / 2, y + VISIBLE_ROWS * ROW_H / 2 + 4, 0xFF4E4E5C);
 			return;
 		}
 
@@ -147,7 +148,8 @@ public class AccountScreen extends Screen {
 			Render2D.text(ctx, name, x + 30, ry + 7, active ? Theme.TEXT : ColorUtil.lerp(Theme.TEXT_MUTED, Theme.TEXT, hv));
 
 			if (active) {
-				Render2D.text(ctx, "активен", x + w - 10 - Render2D.textWidth("активен"), ry + 7, Theme.accentLight());
+				String activeLabel = I18n.translate("zerovisual.account.active");
+				Render2D.text(ctx, activeLabel, x + w - 10 - Render2D.textWidth(activeLabel), ry + 7, Theme.accentLight());
 			} else if (hv > 0.05f) {
 				boolean overDelete = mouseX >= x + w - 20 && mouseX <= x + w - 4;
 				Render2D.text(ctx, "✕", x + w - 14, ry + 7, ColorUtil.fade(overDelete ? 0xFFFF5C6C : Theme.TEXT_DIM, hv));
@@ -195,7 +197,7 @@ public class AccountScreen extends Screen {
 			}
 			if (!accounts.isOriginal() && inside(mx, my, x + 118, by, 92, 20)) {
 				accounts.restoreOriginal();
-				setStatus("Возвращён аккаунт " + accounts.currentName(), Theme.TEXT_MUTED);
+				setStatus(I18n.translate("zerovisual.account.restored", accounts.currentName()), Theme.TEXT_MUTED);
 				return true;
 			}
 			if (inside(mx, my, x + W - 66, by, 52, 20)) {
@@ -212,10 +214,10 @@ public class AccountScreen extends Screen {
 				boolean active = name.equals(accounts.currentName());
 				if (!active && mx >= lx + lw - 20) {
 					accounts.remove(name);
-					setStatus("Удалён " + name, Theme.TEXT_DIM);
+					setStatus(I18n.translate("zerovisual.account.removed", name), Theme.TEXT_DIM);
 				} else if (!active) {
 					accounts.login(name);
-					setStatus("Вы вошли как " + name, Theme.accentLight());
+					setStatus(I18n.translate("zerovisual.account.logged_in", name), Theme.accentLight());
 				}
 				return true;
 			}
@@ -241,16 +243,16 @@ public class AccountScreen extends Screen {
 	private void addFromField() {
 		String name = nameField.getText().trim();
 		if (!AccountManager.VALID_NAME.matcher(name).matches()) {
-			setStatus("Ник: 3-16 символов, латиница, цифры и _", 0xFFFF5C6C);
+			setStatus(I18n.translate("zerovisual.account.invalid"), 0xFFFF5C6C);
 			return;
 		}
 		if (!accounts.add(name)) {
-			setStatus("Такой ник уже есть в списке", 0xFFFFB454);
+			setStatus(I18n.translate("zerovisual.account.duplicate"), 0xFFFFB454);
 			return;
 		}
 		nameField.setText("");
 		scroll = Math.max(0, accounts.getAccounts().size() - VISIBLE_ROWS);
-		setStatus("Добавлен " + name + " (нажмите, чтобы войти)", Theme.TEXT_MUTED);
+		setStatus(I18n.translate("zerovisual.account.added", name), Theme.TEXT_MUTED);
 	}
 
 	private void setStatus(String text, int color) {

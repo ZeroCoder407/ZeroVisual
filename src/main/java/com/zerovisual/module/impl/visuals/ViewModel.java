@@ -12,6 +12,6 @@ public class ViewModel extends Module {
 	public final NumberSetting scale = add(new NumberSetting("Scale", 1, 0.3, 1.5, 0.05));
 
 	public ViewModel() {
-		super("ViewModel", "Положение и размер предметов в руках", Category.VISUALS);
+		super("ViewModel", "Position and size of held items", Category.VISUALS);
 	}
 }

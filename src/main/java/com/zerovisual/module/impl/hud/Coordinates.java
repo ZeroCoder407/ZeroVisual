@@ -11,7 +11,7 @@ public class Coordinates extends HudModule {
 	public final BooleanSetting netherCoords = add(new BooleanSetting("Nether coords", true));
 
 	public Coordinates() {
-		super("Coordinates", "Координаты игрока и направление");
+		super("Coordinates", "Player coordinates and facing");
 	}
 
 	@Override

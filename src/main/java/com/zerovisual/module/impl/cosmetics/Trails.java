@@ -28,7 +28,7 @@ public class Trails extends Module {
 	private final Deque<Point> points = new ArrayDeque<>();
 
 	public Trails() {
-		super("Trails", "Светящийся след за игроком", Category.COSMETICS);
+		super("Trails", "Glowing trail behind the player", Category.COSMETICS);
 	}
 
 	@Override

@@ -9,6 +9,7 @@ import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.setting.NumberSetting;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.DrawContext;
 
 import java.util.ArrayList;
@@ -27,14 +28,14 @@ public class Notifications extends HudModule {
 	private boolean drawingOnTop;
 
 	public Notifications() {
-		super("Notifications", "Уведомления о включении и выключении модулей");
+		super("Notifications", "Notifications when modules are toggled");
 		setEnabled(true);
 	}
 
 	public void onToggle(Module module) {
 		if (!isEnabled() || module == this) return;
 		boolean on = module.isEnabled();
-		post(module, module.getName(), on ? "Включён" : "Выключен", on);
+		post(module, module.getName(), I18n.translate(on ? "zerovisual.notify.enabled" : "zerovisual.notify.disabled"), on);
 	}
 
 	/** A card with any text, e.g. "Screenshot copied". Thread-safe: may be called from background threads. */

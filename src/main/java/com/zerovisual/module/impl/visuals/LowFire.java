@@ -9,6 +9,6 @@ public class LowFire extends Module {
 	public final NumberSetting offset = add(new NumberSetting("Offset", 0.3, 0.05, 0.6, 0.05));
 
 	public LowFire() {
-		super("LowFire", "Опускает огонь на экране, когда вы горите", Category.VISUALS);
+		super("LowFire", "Lowers the fire overlay when you are burning", Category.VISUALS);
 	}
 }

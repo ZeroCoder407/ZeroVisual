@@ -17,7 +17,7 @@ public class Saturation extends Module {
 	public final BooleanSetting showValue = add(new BooleanSetting("Show value", true));
 
 	public Saturation() {
-		super("Saturation", "Насыщение на полоске голода", Category.HUD);
+		super("Saturation", "Saturation on the hunger bar", Category.HUD);
 	}
 
 	/** Same layout as InGameHud#renderFood: 10 icons from right to left, 8 px apart. */

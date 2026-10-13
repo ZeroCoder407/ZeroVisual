@@ -16,7 +16,7 @@ public class TotemCounter extends HudModule {
 	public final BooleanSetting showZero = add(new BooleanSetting("Show when zero", true));
 
 	public TotemCounter() {
-		super("TotemCounter", "Сколько тотемов бессмертия в инвентаре");
+		super("TotemCounter", "How many totems of undying are in your inventory");
 	}
 
 	@Override

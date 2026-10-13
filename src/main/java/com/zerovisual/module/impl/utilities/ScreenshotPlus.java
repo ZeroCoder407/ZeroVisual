@@ -5,6 +5,7 @@ import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
 import com.zerovisual.module.impl.hud.Notifications;
 import com.zerovisual.setting.BooleanSetting;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.util.Util;
 
 import java.io.File;
@@ -24,7 +25,7 @@ public class ScreenshotPlus extends Module {
 	public final BooleanSetting notification = add(new BooleanSetting("Notification", true));
 
 	public ScreenshotPlus() {
-		super("Screenshot+", "Копирует скриншот (F2) в буфер обмена", Category.UTILITIES);
+		super("Screenshot+", "Copies the screenshot (F2) to the clipboard", Category.UTILITIES);
 		setEnabled(true);
 	}
 
@@ -38,8 +39,8 @@ public class ScreenshotPlus extends Module {
 			boolean copied = copy.get() && copyToClipboard(file);
 			if (notification.get()) {
 				Notifications notifications = ZeroVisualClient.get().modules().get(Notifications.class);
-				if (copied) notifications.notify("Скриншот", "Скопирован в буфер обмена", true);
-				else notifications.notify("Скриншот", "Сохранён: " + file.getName(), true);
+				if (copied) notifications.notify(I18n.translate("zerovisual.screenshot"), I18n.translate("zerovisual.screenshot.copied"), true);
+				else notifications.notify(I18n.translate("zerovisual.screenshot"), I18n.translate("zerovisual.screenshot.saved", file.getName()), true);
 			}
 		}, "ZeroVisual Screenshot+");
 		thread.setDaemon(true);

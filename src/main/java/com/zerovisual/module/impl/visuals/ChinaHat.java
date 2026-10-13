@@ -28,7 +28,7 @@ public class ChinaHat extends Module {
 	public final BooleanSetting others = add(new BooleanSetting("Other players", false));
 
 	public ChinaHat() {
-		super("ChinaHat", "Конусная шляпа над головой (вид от 3-го лица)", Category.COSMETICS);
+		super("ChinaHat", "Cone hat above your head (third-person view)", Category.COSMETICS);
 	}
 
 	public void render(WorldRenderContext context) {

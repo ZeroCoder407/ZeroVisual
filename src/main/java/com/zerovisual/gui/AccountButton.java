@@ -3,6 +3,7 @@ package com.zerovisual.gui;
 import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
@@ -26,7 +27,7 @@ public class AccountButton extends ClickableWidget {
 	@Override
 	protected void renderWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		String name = MinecraftClient.getInstance().getSession().getUsername();
-		String hint = "сменить";
+		String hint = I18n.translate("zerovisual.account.switch");
 		setWidth(36 + Render2D.textWidth(name) + 8 + Render2D.textWidth(hint) + 10);
 
 		float hv = hover.update(isHovered());

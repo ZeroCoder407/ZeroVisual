@@ -24,7 +24,7 @@ public class JumpCircles extends Module {
 	private boolean wasOnGround = true;
 
 	public JumpCircles() {
-		super("JumpCircles", "Круги на земле при прыжке", Category.COSMETICS);
+		super("JumpCircles", "Circles on the ground when you jump", Category.COSMETICS);
 	}
 
 	@Override

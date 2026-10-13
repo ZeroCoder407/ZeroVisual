@@ -4,11 +4,13 @@ import com.zerovisual.ZeroVisualClient;
 import com.zerovisual.module.impl.hud.Notifications;
 import com.zerovisual.setting.Setting;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.resource.language.I18n;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public abstract class Module {
 	protected static final MinecraftClient mc = MinecraftClient.getInstance();
@@ -73,8 +75,10 @@ public abstract class Module {
 		return name;
 	}
 
+	/** Translated from {@code zerovisual.module.<name>.desc} in the game language, English from the code otherwise. */
 	public String getDescription() {
-		return description;
+		String key = "zerovisual.module." + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "") + ".desc";
+		return I18n.hasTranslation(key) ? I18n.translate(key) : description;
 	}
 
 	public Category getCategory() {

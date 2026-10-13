@@ -23,7 +23,7 @@ public class Keystrokes extends HudModule {
 	private final Anim[] anims = new Anim[7];
 
 	public Keystrokes() {
-		super("Keystrokes", "Нажатия WASD, мыши (с CPS) и пробела");
+		super("Keystrokes", "WASD, mouse (with CPS) and space presses");
 		for (int i = 0; i < anims.length; i++) anims[i] = new Anim(20f, 0f);
 	}
 

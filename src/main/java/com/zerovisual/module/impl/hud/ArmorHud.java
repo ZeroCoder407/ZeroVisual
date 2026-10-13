@@ -17,7 +17,7 @@ public class ArmorHud extends HudModule {
 	public final BooleanSetting percent = add(new BooleanSetting("Percent", true));
 
 	public ArmorHud() {
-		super("ArmorHUD", "Надетая броня и её прочность");
+		super("ArmorHUD", "Worn armor and its durability");
 	}
 
 	@Override

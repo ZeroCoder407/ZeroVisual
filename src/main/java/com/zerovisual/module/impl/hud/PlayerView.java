@@ -14,7 +14,7 @@ public class PlayerView extends HudModule {
 	public final BooleanSetting background = add(new BooleanSetting("Background", true));
 
 	public PlayerView() {
-		super("PlayerView", "Модель вашего персонажа на экране");
+		super("PlayerView", "Your character model on screen");
 	}
 
 	@Override

@@ -6,6 +6,6 @@ import com.zerovisual.module.Module;
 /** Dropped items lie on the ground. Applied in ItemEntityRendererMixin. */
 public class ItemPhysics extends Module {
 	public ItemPhysics() {
-		super("ItemPhysics", "Выброшенные предметы лежат на земле плашмя", Category.VISUALS);
+		super("ItemPhysics", "Dropped items lie flat on the ground", Category.VISUALS);
 	}
 }

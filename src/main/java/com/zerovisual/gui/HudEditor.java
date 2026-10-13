@@ -7,6 +7,7 @@ import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
@@ -118,7 +119,7 @@ public final class HudEditor {
 		}
 
 		if (any) {
-			String hint = "Перетаскивайте элементы HUD  •  ПКМ — вернуть на место";
+			String hint = I18n.translate("zerovisual.hud.editor.hint");
 			float hw = Render2D.textWidth(hint) + 14;
 			Render2D.rect(ctx, (screenW - hw) / 2f, 4, hw, 14, 6, 0xC00D0D12);
 			Render2D.centeredText(ctx, hint, screenW / 2f, 7, Theme.TEXT_MUTED);
