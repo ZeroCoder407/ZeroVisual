@@ -5,6 +5,9 @@ import com.zerovisual.config.ConfigManager;
 import com.zerovisual.gui.AccountButton;
 import com.zerovisual.gui.HudEditor;
 import com.zerovisual.module.ModuleManager;
+import com.zerovisual.module.impl.cosmetics.StarPet;
+import com.zerovisual.module.impl.cosmetics.TotemPop;
+import com.zerovisual.module.impl.hud.LowHealth;
 import com.zerovisual.module.impl.cosmetics.HitParticles;
 import com.zerovisual.module.impl.cosmetics.FireFlies;
 import com.zerovisual.module.impl.cosmetics.Halo;
@@ -94,12 +97,20 @@ public class ZeroVisualClient implements ClientModInitializer {
 			modules.renderHud(ctx, tickCounter.getTickDelta(false));
 			AutoTool autoTool = modules.get(AutoTool.class);
 			if (autoTool.isEnabled()) autoTool.render(ctx);
+			LowHealth lowHealth = modules.get(LowHealth.class);
+			if (lowHealth.isEnabled()) lowHealth.render(ctx);
+			TotemPop totemPop = modules.get(TotemPop.class);
+			if (totemPop.isEnabled()) totemPop.renderHud(ctx);
 			ctx.getMatrices().pop();
 		});
 
 		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
 			JumpCircles jumpCircles = modules.get(JumpCircles.class);
 			if (jumpCircles.isEnabled()) jumpCircles.render(context);
+			StarPet starPet = modules.get(StarPet.class);
+			if (starPet.isEnabled()) starPet.render(context);
+			TotemPop totemPopWorld = modules.get(TotemPop.class);
+			if (totemPopWorld.isEnabled()) totemPopWorld.renderWorld(context);
 			ChinaHat chinaHat = modules.get(ChinaHat.class);
 			if (chinaHat.isEnabled()) chinaHat.render(context);
 			HitParticles hitParticles = modules.get(HitParticles.class);

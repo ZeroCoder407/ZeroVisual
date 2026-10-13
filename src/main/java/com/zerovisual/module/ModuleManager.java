@@ -1,5 +1,7 @@
 package com.zerovisual.module;
 
+import com.zerovisual.module.impl.cosmetics.StarPet;
+import com.zerovisual.module.impl.cosmetics.TotemPop;
 import com.zerovisual.module.impl.cosmetics.Cape;
 import com.zerovisual.module.impl.cosmetics.HitParticles;
 import com.zerovisual.module.impl.cosmetics.FireFlies;
@@ -10,8 +12,11 @@ import com.zerovisual.module.impl.cosmetics.KillEffect;
 import com.zerovisual.module.impl.cosmetics.Trails;
 import com.zerovisual.module.impl.hud.Compass;
 import com.zerovisual.module.impl.hud.ChatHeads;
+import com.zerovisual.module.impl.hud.LowHealth;
 import com.zerovisual.module.impl.hud.Minimap;
 import com.zerovisual.module.impl.hud.PlayerView;
+import com.zerovisual.module.impl.visuals.CustomSky;
+import com.zerovisual.module.impl.visuals.GlintColor;
 import com.zerovisual.module.impl.visuals.MotionBlur;
 import com.zerovisual.module.impl.visuals.Nametags;
 import com.zerovisual.module.impl.visuals.DamageNumbers;
@@ -86,6 +91,8 @@ public class ModuleManager {
 		add(new DamageNumbers());
 		add(new Nametags());
 		add(new MotionBlur());
+		add(new GlintColor());
+		add(new CustomSky());
 
 		// Cosmetics
 		add(new Cape());
@@ -96,6 +103,8 @@ public class ModuleManager {
 		add(new KillEffect());
 		add(new Wings());
 		add(new HitSound());
+		add(new TotemPop());
+		add(new StarPet());
 
 		// HUD
 		add(new Watermark());
@@ -115,6 +124,7 @@ public class ModuleManager {
 		add(new Compass());
 		add(new PlayerView());
 		add(new Minimap());
+		add(new LowHealth());
 
 		// Utilities
 		add(new ClickGui());

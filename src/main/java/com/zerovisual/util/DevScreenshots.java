@@ -29,6 +29,7 @@ public final class DevScreenshots {
 	private static final List<String> FONTS = List.of("Minecraft", "Inter", "Montserrat", "Rubik", "Nunito", "Comfortaa");
 	private static int ticks;
 	private static int step;
+	private static int startFrom;
 	private static boolean splashShot;
 	private static int splashTicks;
 	private static int movingTicks;
@@ -47,6 +48,9 @@ public final class DevScreenshots {
 			ZeroVisualClient.LOGGER.info("Dev screenshots: menus");
 			ClientTickEvents.END_CLIENT_TICK.register(DevScreenshots::menus);
 		} else if (args.contains("--zvDevShotWorld")) {
+			// --zvDevShotFrom N: after the setup step, jump straight to step N
+			int from = args.indexOf("--zvDevShotFrom");
+			if (from >= 0 && from + 1 < args.size()) startFrom = Integer.parseInt(args.get(from + 1));
 			ZeroVisualClient.LOGGER.info("Dev screenshots: world");
 			ClientTickEvents.END_CLIENT_TICK.register(DevScreenshots::world);
 		}
@@ -221,9 +225,59 @@ public final class DevScreenshots {
 			case 18, 19 -> {
 				// wait for the timed screenshots
 			}
+			case 20 -> {
+				// CustomSky: galaxy at night, looking up
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.setEnabled(true);
+				sky.mode.set("Galaxy");
+				runCommand(mc, "time set 18000");
+				mc.player.setYaw(0);
+				mc.player.setPitch(-35);
+			}
+			case 21 -> shot(mc, "zv_sky_galaxy");
+			case 22 -> {
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class).mode.set("Realistic");
+				runCommand(mc, "time set 12400");
+				mc.player.setYaw(90);
+				mc.player.setPitch(-10);
+			}
+			case 23 -> shot(mc, "zv_sky_sunset");
+			case 24 -> {
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class).mode.set("Black hole");
+				mc.player.setYaw(-143.7f);
+				mc.player.setPitch(-21);
+			}
+			case 25 -> shot(mc, "zv_sky_blackhole");
+			case 26 -> {
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class).setEnabled(false);
+				runCommand(mc, "time set 6000");
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.StarPet.class).setEnabled(true);
+				var glint = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.GlintColor.class);
+				glint.setEnabled(true);
+				glint.color.set(0xFFFF3050);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.LowHealth.class).setEnabled(true);
+				String name = mc.player.getName().getString();
+				runCommand(mc, "item replace entity " + name + " weapon.mainhand with minecraft:iron_sword[enchantments={levels:{\"minecraft:sharpness\":5}}]");
+				runCommand(mc, "item replace entity " + name + " weapon.offhand with minecraft:totem_of_undying");
+				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+				mc.player.setYaw(30);
+				mc.player.setPitch(15);
+			}
+			case 27 -> shot(mc, "zv_pet");
+			case 28 -> mc.options.setPerspective(Perspective.FIRST_PERSON);
+			case 29 -> shot(mc, "zv_glint");
+			case 30 -> {
+				runCommand(mc, "damage " + mc.player.getName().getString() + " 100");
+				timedShots.put(ticks + 7, "zv_totem1");
+				timedShots.put(ticks + 22, "zv_totem2");
+			}
+			case 31, 32 -> {
+				// wait for the timed screenshots
+			}
 			default -> mc.scheduleStop();
 		}
 		step++;
+		if (step == 1 && startFrom > 1) step = startFrom;
 	}
 
 	private static void runCommand(MinecraftClient mc, String command) {

@@ -6,15 +6,10 @@ import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
+import com.zerovisual.render.StarShape;
 import com.zerovisual.setting.ModeSetting;
 import com.zerovisual.setting.NumberSetting;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.client.gl.ShaderProgramKeys;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.BufferRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
@@ -28,11 +23,6 @@ import java.util.List;
  * Shatter - the star appears, then breaks into its five rays which fly apart.
  */
 public class JumpCircles extends Module {
-	/** Logo gradient, left to right. */
-	private static final int STAR_LEFT = 0xFF388CFF;
-	private static final int STAR_RIGHT = 0xFFB050F5;
-	/** Inner radius of the star relative to the outer one (same as the logo). */
-	private static final float INNER = 0.40f;
 	private static final float APPEAR_SECONDS = 0.25f;
 	private static final float SHATTER_SECONDS = 0.6f;
 	/** Base opacity of the star, slightly see-through so it blends with the ground. */
@@ -133,7 +123,7 @@ public class JumpCircles extends Module {
 			float w = (t - 0.68f) / 0.32f;
 			float r = radius.getFloat() * (0.35f + 0.95f * easeOut(w));
 			float fade = (1f - w) * 0.85f;
-			int a = ColorUtil.withAlpha(STAR_LEFT, fade), b = ColorUtil.withAlpha(STAR_RIGHT, fade);
+			int a = ColorUtil.withAlpha(StarShape.LEFT, fade), b = ColorUtil.withAlpha(StarShape.RIGHT, fade);
 			Render2D.shape(m, -r, -r, r * 2, r * 2, r, 0.05f * (1f - w) + 0.015f, r * 0.12f, a, b, b, a);
 		}
 	}
@@ -153,64 +143,18 @@ public class JumpCircles extends Module {
 		float distance = r * 0.9f * easeOut(p);
 		float alpha = 1f - p * p;
 		for (int i = 0; i < 5; i++) {
-			double dir = -Math.PI / 2 + i * 2 * Math.PI / 5;
+			double dir = StarShape.rayAngle(i);
 			Matrix4f piece = new Matrix4f(star)
 				.translate((float) Math.cos(dir) * distance, (float) Math.sin(dir) * distance, 0)
 				// each ray tumbles a little, alternating direction
 				.rotateZ((float) Math.toRadians((i % 2 == 0 ? 1 : -1) * 120f * p))
 				.scale(1f - 0.35f * p);
-			drawRay(piece, r, i, alpha);
+			StarShape.drawRay(piece, r, i, alpha * STAR_ALPHA);
 		}
 	}
 
 	private static void drawStar(Matrix4f m, float r, float alpha) {
-		if (r <= 0.001f || alpha <= 0.01f) return;
-		BufferBuilder b = begin();
-		// soft glow: a larger, faint copy of the star
-		for (int i = 0; i < 5; i++) addRay(b, m, r * 1.18f, i, alpha * 0.22f);
-		for (int i = 0; i < 5; i++) addRay(b, m, r, i, alpha);
-		end(b);
-	}
-
-	private static void drawRay(Matrix4f m, float r, int index, float alpha) {
-		if (alpha <= 0.01f) return;
-		BufferBuilder b = begin();
-		addRay(b, m, r * 1.18f, index, alpha * 0.22f);
-		addRay(b, m, r, index, alpha);
-		end(b);
-	}
-
-	/** One ray of the star: center, inner corner, tip, inner corner. The color follows the logo gradient. */
-	private static void addRay(BufferBuilder b, Matrix4f m, float r, int index, float alpha) {
-		double tip = -Math.PI / 2 + index * 2 * Math.PI / 5;
-		double step = Math.PI / 5;
-		float tx = (float) Math.cos(tip) * r, ty = (float) Math.sin(tip) * r;
-		float lx = (float) Math.cos(tip - step) * r * INNER, ly = (float) Math.sin(tip - step) * r * INNER;
-		float rx = (float) Math.cos(tip + step) * r * INNER, ry = (float) Math.sin(tip + step) * r * INNER;
-		vertex(b, m, 0, 0, r, alpha);
-		vertex(b, m, lx, ly, r, alpha);
-		vertex(b, m, tx, ty, r, alpha);
-		vertex(b, m, 0, 0, r, alpha);
-		vertex(b, m, tx, ty, r, alpha);
-		vertex(b, m, rx, ry, r, alpha);
-	}
-
-	private static void vertex(BufferBuilder b, Matrix4f m, float x, float y, float r, float alpha) {
-		alpha *= STAR_ALPHA;
-		float t = Math.max(0f, Math.min(1f, (x + r) / (2 * r)));
-		b.vertex(m, x, y, 0).color(ColorUtil.withAlpha(ColorUtil.lerp(STAR_LEFT, STAR_RIGHT, t), alpha));
-	}
-
-	private static BufferBuilder begin() {
-		RenderSystem.enableBlend();
-		RenderSystem.defaultBlendFunc();
-		RenderSystem.setShader(ShaderProgramKeys.POSITION_COLOR);
-		return Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
-	}
-
-	private static void end(BufferBuilder b) {
-		BufferRenderer.drawWithGlobalProgram(b.end());
-		RenderSystem.disableBlend();
+		StarShape.draw(m, r, alpha * STAR_ALPHA);
 	}
 
 	private static float easeOut(float t) {
