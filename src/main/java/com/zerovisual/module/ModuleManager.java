@@ -9,6 +9,7 @@ import com.zerovisual.module.impl.cosmetics.Wings;
 import com.zerovisual.module.impl.cosmetics.KillEffect;
 import com.zerovisual.module.impl.cosmetics.Trails;
 import com.zerovisual.module.impl.hud.Compass;
+import com.zerovisual.module.impl.hud.ChatHeads;
 import com.zerovisual.module.impl.hud.Minimap;
 import com.zerovisual.module.impl.hud.PlayerView;
 import com.zerovisual.module.impl.visuals.MotionBlur;
@@ -109,6 +110,7 @@ public class ModuleManager {
 		add(new TotemCounter());
 		add(new InfoHud());
 		add(new ChatTweaks());
+		add(new ChatHeads());
 		add(new Saturation());
 		add(new Compass());
 		add(new PlayerView());

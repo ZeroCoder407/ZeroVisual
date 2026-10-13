@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.zerovisual.ZeroVisualClient;
+import com.zerovisual.module.impl.hud.ChatHeads;
 import com.zerovisual.module.impl.hud.ChatTweaks;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -12,13 +13,26 @@ import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.List;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
+	@Shadow
+	@Final
+	private List<ChatHudLine.Visible> visibleMessages;
+	@Unique
+	private int zerovisual$lineCount;
+
 	@Unique
 	private static ChatTweaks zerovisual$tweaks() {
 		ZeroVisualClient client = ZeroVisualClient.get();
@@ -65,12 +79,51 @@ public class ChatHudMixin {
 	private int zerovisual$slideText(DrawContext context, TextRenderer renderer, OrderedText text, int x, int y, int color,
 									 Operation<Integer> original, @Local ChatHudLine.Visible line) {
 		float offset = zerovisual$offset(line);
-		if (offset == 0) return original.call(context, renderer, text, x, y, color);
+		ChatHeads heads = zerovisual$heads();
+		if (offset == 0 && heads == null) return original.call(context, renderer, text, x, y, color);
+		int shown = offset == 0 ? color : zerovisual$fade(color, offset);
 		context.getMatrices().push();
 		context.getMatrices().translate(offset, 0, 0);
-		int result = original.call(context, renderer, text, x, y, zerovisual$fade(color, offset));
+		int shift = heads != null ? heads.drawHead(context, line, y, shown) : 0;
+		int result = original.call(context, renderer, text, x + shift, y, shown);
 		context.getMatrices().pop();
 		return result;
+	}
+
+	// ChatHeads: find the sender while the message is split into lines and remember which lines belong to it
+
+	@Inject(method = "addVisibleMessage", at = @At("HEAD"))
+	private void zerovisual$headsBegin(ChatHudLine message, CallbackInfo ci) {
+		ChatHeads heads = zerovisual$heads();
+		if (heads != null) heads.beginMessage(message.content());
+	}
+
+	@ModifyArg(method = "addVisibleMessage", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/util/ChatMessages;breakRenderedChatMessageLines(Lnet/minecraft/text/StringVisitable;ILnet/minecraft/client/font/TextRenderer;)Ljava/util/List;"), index = 1)
+	private int zerovisual$headsWidth(int width) {
+		ChatHeads heads = zerovisual$heads();
+		return heads != null ? heads.wrapWidth(width) : width;
+	}
+
+	@ModifyExpressionValue(method = "addVisibleMessage", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/util/ChatMessages;breakRenderedChatMessageLines(Lnet/minecraft/text/StringVisitable;ILnet/minecraft/client/font/TextRenderer;)Ljava/util/List;"))
+	private List<OrderedText> zerovisual$headsLines(List<OrderedText> lines) {
+		zerovisual$lineCount = lines.size();
+		return lines;
+	}
+
+	@Inject(method = "addVisibleMessage", at = @At("RETURN"))
+	private void zerovisual$headsEnd(ChatHudLine message, CallbackInfo ci) {
+		ChatHeads heads = zerovisual$heads();
+		if (heads != null) heads.endMessage(visibleMessages, zerovisual$lineCount);
+	}
+
+	@Unique
+	private static ChatHeads zerovisual$heads() {
+		ZeroVisualClient client = ZeroVisualClient.get();
+		if (client == null) return null;
+		ChatHeads heads = client.modules().get(ChatHeads.class);
+		return heads.isEnabled() ? heads : null;
 	}
 
 	@Unique

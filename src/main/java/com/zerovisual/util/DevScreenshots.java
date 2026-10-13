@@ -155,6 +155,9 @@ public final class DevScreenshots {
 			}
 			case 7 -> {
 				mc.options.setPerspective(Perspective.FIRST_PERSON);
+				// ChatHeads: a short message and one long enough to wrap
+				mc.player.networkHandler.sendChatMessage("Привет! Это ChatHeads");
+				mc.player.networkHandler.sendChatMessage("Длинное сообщение, чтобы проверить перенос строк: голова только у первой строки, а текст всех строк выровнен");
 				mc.setScreen(new ChatScreen(""));
 			}
 			case 8 -> shot(mc, "zv_world_chat");
