@@ -262,6 +262,8 @@ public final class DevScreenshots {
 				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
 				mc.player.setYaw(30);
 				mc.player.setPitch(15);
+				// walk so the pet runs after the player
+				movingTicks = 40;
 			}
 			case 27 -> shot(mc, "zv_pet");
 			case 28 -> mc.options.setPerspective(Perspective.FIRST_PERSON);
@@ -274,6 +276,20 @@ public final class DevScreenshots {
 			case 31, 32 -> {
 				// wait for the timed screenshots
 			}
+			case 33 -> {
+				// StarPet close-up without the HUD
+				mc.options.hudHidden = true;
+				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+				mc.player.setPitch(28);
+			}
+			case 34 -> shot(mc, "zv_pet_stand");
+			case 35 -> {
+				// turn around: the pet runs to its new spot behind the player
+				mc.player.setYaw(mc.player.getYaw() + 150);
+				mc.player.setBodyYaw(mc.player.getYaw());
+				timedShots.put(ticks + 6, "zv_pet_run");
+			}
+			case 36 -> mc.options.hudHidden = false;
 			default -> mc.scheduleStop();
 		}
 		step++;

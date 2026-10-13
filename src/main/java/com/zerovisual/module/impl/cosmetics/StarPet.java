@@ -1,92 +1,243 @@
 package com.zerovisual.module.impl.cosmetics;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
+import com.zerovisual.render.Render2D;
 import com.zerovisual.render.StarShape;
-import com.zerovisual.render.WorldRender;
 import com.zerovisual.setting.BooleanSetting;
 import com.zerovisual.setting.NumberSetting;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.client.option.Perspective;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.gl.ShaderProgramKeys;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.render.VertexFormats;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Iterator;
-
-/** A small logo star that floats next to you, follows you smoothly and leaves a glowing trail. Only you see it. */
+/**
+ * A puffy 3D logo star that runs after you on the ground: the two lower rays are its legs,
+ * it hops with every step, leans forward and turns where it runs. Only you see it.
+ */
 public class StarPet extends Module {
-	private static final int TRAIL = 18;
-	private static final long TRAIL_STEP_MS = 35;
+	/** Ray angles, tip up: 0 top, 1 left arm, 2 left leg, 3 right leg, 4 right arm. */
+	private static final float INNER = 0.47f;
+	private static final float DEPTH = 0.42f;
+	private static final Vector3f LIGHT = new Vector3f(0.35f, 0.9f, 0.45f).normalize();
 
 	public final NumberSetting size = add(new NumberSetting("Size", 1, 0.5, 2, 0.1));
-	public final BooleanSetting trail = add(new BooleanSetting("Trail", true));
-	public final BooleanSetting firstPerson = add(new BooleanSetting("First person", true));
+	public final BooleanSetting eyes = add(new BooleanSetting("Eyes", true));
 
-	private final Deque<Vec3d> history = new ArrayDeque<>();
-	private Vec3d pos;
-	private long lastFrame, lastTrail;
+	private Vec3d pos, prevPos;
+	private double fallSpeed;
+	private float yaw, prevYaw;
+	/** Walk cycle, advanced by the distance run. */
+	private float phase, prevPhase;
+	/** 0 standing .. 1 running, smoothed. */
+	private float run, prevRun;
 
 	public StarPet() {
-		super("StarPet", "A little star companion that follows you (only you see it)", Category.COSMETICS);
+		super("StarPet", "A little 3D star that runs after you (only you see it)", Category.COSMETICS);
 	}
 
 	@Override
 	protected void onDisable() {
 		pos = null;
-		history.clear();
 	}
 
-	public void render(WorldRenderContext context) {
-		if (mc.player == null) return;
-		long now = System.currentTimeMillis();
-		float dt = lastFrame == 0 ? 0.016f : Math.min(0.1f, (now - lastFrame) / 1000f);
-		lastFrame = now;
-		float delta = context.tickCounter().getTickDelta(false);
-		float time = now / 1000f;
+	private float radius() {
+		return 0.3f * size.getFloat();
+	}
 
-		// behind the right shoulder, gently bobbing and circling a little
-		double yaw = Math.toRadians(mc.player.getBodyYaw());
-		double sideX = -Math.cos(yaw), sideZ = -Math.sin(yaw);
-		double backX = Math.sin(yaw), backZ = -Math.cos(yaw);
-		double wobble = Math.sin(time * 1.3) * 0.15;
-		Vec3d target = mc.player.getLerpedPos(delta).add(
-			sideX * (0.75 + wobble) + backX * 0.35,
-			mc.player.getHeight() + 0.15 + Math.sin(time * 2.2) * 0.12,
-			sideZ * (0.75 + wobble) + backZ * 0.35);
-		if (pos == null || pos.squaredDistanceTo(target) > 400) pos = target;
-		// smooth follow, frame rate independent
-		pos = pos.lerp(target, 1 - Math.exp(-dt * 5));
+	// ---- movement (20 times per second) ----
 
-		if (now - lastTrail >= TRAIL_STEP_MS) {
-			lastTrail = now;
-			history.addFirst(pos);
-			while (history.size() > TRAIL) history.removeLast();
+	@Override
+	public void onTick() {
+		if (mc.player == null || mc.world == null) {
+			pos = null;
+			return;
 		}
+		Vec3d player = mc.player.getPos();
+		double yawRad = Math.toRadians(mc.player.getBodyYaw());
+		// a spot behind and a little to the right of the player
+		Vec3d target = player.add(Math.sin(yawRad) * 1.4 - Math.cos(yawRad) * 0.6, 0, -Math.cos(yawRad) * 1.4 - Math.sin(yawRad) * 0.6);
+		if (pos == null || pos.squaredDistanceTo(player) > 24 * 24) {
+			pos = new Vec3d(target.x, player.y, target.z);
+			prevPos = pos;
+			fallSpeed = 0;
+		}
+		prevPos = pos;
+		prevYaw = yaw;
+		prevPhase = phase;
+		prevRun = run;
 
-		if (mc.options.getPerspective() == Perspective.FIRST_PERSON && !firstPerson.get()) return;
+		double dx = target.x - pos.x, dz = target.z - pos.z;
+		double dist = Math.sqrt(dx * dx + dz * dz);
+		double step = dist > 0.5 ? Math.min(dist * 0.3, 0.42) : 0;
+		double nx = pos.x + (step > 0 ? dx / dist * step : 0), nz = pos.z + (step > 0 ? dz / dist * step : 0);
+
+		double ground = groundY(nx, nz, Math.max(pos.y, player.y));
+		if (Double.isNaN(ground)) ground = player.y;
+		double ny;
+		if (ground >= pos.y - 0.01) {
+			// steps up instantly (the hop hides it)
+			ny = Math.min(ground, pos.y + 1.1);
+			fallSpeed = 0;
+		} else {
+			fallSpeed = Math.min(fallSpeed + 0.08, 1.5);
+			ny = Math.max(ground, pos.y - fallSpeed);
+		}
+		pos = new Vec3d(nx, ny, nz);
+
+		run += ((step > 0.02 ? 1f : 0f) - run) * 0.3f;
+		phase += (float) step * 4.2f;
+		// face where it runs, or the player when standing
+		float wanted = step > 0.02
+			? (float) Math.toDegrees(Math.atan2(-dx, dz))
+			: (float) Math.toDegrees(Math.atan2(-(player.x - pos.x), player.z - pos.z));
+		yaw += MathHelper.wrapDegrees(wanted - yaw) * 0.35f;
+	}
+
+	/** Top of the first block with collision at or below {@code fromY + 2}, or NaN. */
+	private double groundY(double x, double z, double fromY) {
+		BlockPos.Mutable p = new BlockPos.Mutable(MathHelper.floor(x), MathHelper.floor(fromY) + 2, MathHelper.floor(z));
+		for (int i = 0; i < 10; i++, p.move(Direction.DOWN)) {
+			BlockState state = mc.world.getBlockState(p);
+			VoxelShape shape = state.getCollisionShape(mc.world, p);
+			if (!shape.isEmpty()) return p.getY() + shape.getMax(Direction.Axis.Y);
+		}
+		return Double.NaN;
+	}
+
+	// ---- rendering ----
+
+	public void render(WorldRenderContext context) {
+		if (pos == null || prevPos == null || mc.player == null) return;
+		float delta = context.tickCounter().getTickDelta(false);
+		Vec3d p = prevPos.lerp(pos, delta);
+		float yawNow = prevYaw + MathHelper.wrapDegrees(yaw - prevYaw) * delta;
+		float cycle = MathHelper.lerp(delta, prevPhase, phase);
+		float running = MathHelper.lerp(delta, prevRun, run);
+		float time = (System.currentTimeMillis() % 100_000L) / 1000f;
 		Vec3d cam = context.camera().getPos();
-		float s = 0.16f * size.getFloat();
+		float r = radius();
 
-		WorldRender.begin();
-		if (trail.get()) {
-			int i = 0;
-			for (Iterator<Vec3d> it = history.iterator(); it.hasNext(); i++) {
-				Vec3d p = it.next();
-				if (i == 0) continue;
-				float k = 1f - (float) i / TRAIL;
-				int color = ColorUtil.lerp(StarShape.LEFT, StarShape.RIGHT, (float) i / TRAIL);
-				WorldRender.glowDot(WorldRender.billboard(p, cam, context.camera().getRotation()), s * 0.18f * k,
-					ColorUtil.withAlpha(color, 0.7f * k));
+		// a hop on every step while running, slow breathing while standing
+		float hop = Math.abs(MathHelper.sin(cycle)) * 0.16f * r * 3 * running;
+		float breathe = (1 - running) * MathHelper.sin(time * 2.5f) * 0.03f;
+		float lean = running * 14f;
+		float legSwing = MathHelper.sin(cycle) * running;
+
+		// legs reach the ground: the lowest outline point is sin(54 deg) * r below the center
+		float centerY = r * 0.81f + hop;
+
+		RenderSystem.enableDepthTest();
+		RenderSystem.depthMask(true);
+		RenderSystem.disableCull();
+
+		drawShadow(p, cam, r, hop);
+
+		Matrix4f model = new Matrix4f()
+			.translate((float) (p.x - cam.x), (float) (p.y - cam.y) + centerY, (float) (p.z - cam.z))
+			.rotateY((float) Math.toRadians(-yawNow))
+			.rotateX((float) Math.toRadians(lean))
+			.scale(1 + breathe, 1 - breathe, 1 + breathe);
+		drawBody(model, r, legSwing, running, time);
+		if (eyes.get()) drawEyes(model, r, time);
+
+		RenderSystem.enableCull();
+	}
+
+	private void drawShadow(Vec3d p, Vec3d cam, float r, float hop) {
+		float s = r * (1.1f - hop * 0.8f);
+		Matrix4f m = new Matrix4f()
+			.translate((float) (p.x - cam.x), (float) (p.y - cam.y) + 0.015f, (float) (p.z - cam.z))
+			.rotateX((float) Math.toRadians(90));
+		int c = 0x55000000;
+		RenderSystem.depthMask(false);
+		Render2D.shape(m, -s, -s * 0.7f, s * 2, s * 1.4f, s, 0, s * 0.5f, c, c, c, c);
+		RenderSystem.depthMask(true);
+	}
+
+	/** Outline point {@code i} (0..9, even = tips) of the star in the XY plane, with the legs swinging. */
+	private static Vector3f outline(int i, float r, float legSwing, float running, float time) {
+		double angle = Math.PI / 2 + i * Math.PI / 5;
+		boolean tip = i % 2 == 0;
+		float len = tip ? r : r * INNER;
+		Vector3f v = new Vector3f((float) Math.cos(angle) * len, (float) Math.sin(angle) * len, 0);
+		if (tip) {
+			int ray = i / 2;
+			if (ray == 2) v.z += legSwing * r * 0.55f;
+			if (ray == 3) v.z -= legSwing * r * 0.55f;
+			// arms swing opposite to the legs, and wave a little when standing
+			float arm = -legSwing * r * 0.35f + (1 - running) * MathHelper.sin(time * 3) * r * 0.06f;
+			if (ray == 1) v.z += arm;
+			if (ray == 4) v.z -= arm;
+			if (ray == 2 || ray == 3) v.y += Math.max(0, (ray == 2 ? legSwing : -legSwing)) * r * 0.2f;
+		}
+		return v;
+	}
+
+	private void drawBody(Matrix4f model, float r, float legSwing, float running, float time) {
+		Vector3f[] ring = new Vector3f[10];
+		for (int i = 0; i < 10; i++) ring[i] = outline(i, r, legSwing, running, time);
+		Vector3f front = new Vector3f(0, 0, r * DEPTH), back = new Vector3f(0, 0, -r * DEPTH);
+
+		RenderSystem.enableBlend();
+		RenderSystem.defaultBlendFunc();
+		RenderSystem.setShader(ShaderProgramKeys.POSITION_COLOR);
+		BufferBuilder b = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
+		for (int i = 0; i < 10; i++) {
+			Vector3f a = ring[i], c = ring[(i + 1) % 10];
+			triangle(b, model, front, a, c, r);
+			triangle(b, model, back, c, a, r);
+		}
+		BufferRenderer.drawWithGlobalProgram(b.end());
+		RenderSystem.disableBlend();
+	}
+
+	/** Flat-shaded triangle: the logo gradient by x, lit by a fixed light in world space. */
+	private static void triangle(BufferBuilder b, Matrix4f model, Vector3f p0, Vector3f p1, Vector3f p2, float r) {
+		Vector3f normal = new Vector3f(p1).sub(p0).cross(new Vector3f(p2).sub(p0)).normalize();
+		// rotate the normal with the model (no translation) to light it in world space
+		model.transformDirection(normal).normalize();
+		float light = 0.55f + 0.45f * Math.max(0, Math.abs(normal.dot(LIGHT)));
+		vertex(b, model, p0, r, light);
+		vertex(b, model, p1, r, light);
+		vertex(b, model, p2, r, light);
+	}
+
+	private static void vertex(BufferBuilder b, Matrix4f model, Vector3f p, float r, float light) {
+		float t = Math.max(0f, Math.min(1f, (p.x + r) / (2 * r)));
+		int c = ColorUtil.lerp(StarShape.LEFT, StarShape.RIGHT, t);
+		int red = Math.round(((c >> 16) & 0xFF) * light), green = Math.round(((c >> 8) & 0xFF) * light), blue = Math.round((c & 0xFF) * light);
+		b.vertex(model, p.x, p.y, p.z).color(0xFF000000 | red << 16 | green << 8 | blue);
+	}
+
+	/** Two eyes on the front, blinking now and then. */
+	private static void drawEyes(Matrix4f model, float r, float time) {
+		float blink = (time % 4f) < 0.12f ? 0.15f : 1f;
+		for (int side = -1; side <= 1; side += 2) {
+			float x = side * r * 0.17f, y = r * 0.08f;
+			// on the puffy front surface: depth falls off from the center
+			float z = r * DEPTH * (1 - Math.abs(x) / (r * INNER) * 0.9f) + 0.004f;
+			Matrix4f eye = new Matrix4f(model).translate(x, y, z);
+			float w = r * 0.075f, h = r * 0.13f * blink;
+			Render2D.shape(eye, -w, -h, w * 2, h * 2, w, 0, 0, 0xFF101018, 0xFF101018, 0xFF101018, 0xFF101018);
+			if (blink > 0.5f) {
+				float g = w * 0.45f;
+				Render2D.shape(new Matrix4f(eye).translate(w * 0.25f, h * 0.35f, 0.001f), -g, -g, g * 2, g * 2, g, 0, 0,
+					0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
 			}
 		}
-		Matrix4f m = WorldRender.billboard(pos, cam, context.camera().getRotation());
-		WorldRender.glowDot(new Matrix4f(m).translate(0, 0, -0.01f), s * 0.35f, ColorUtil.withAlpha(StarShape.RIGHT, 0.35f));
-		// a slow spin with a little "breathing"
-		float pulse = 1f + 0.08f * (float) Math.sin(time * 4);
-		StarShape.draw(new Matrix4f(m).rotateZ(time * 1.6f), s * pulse, 1f);
-		WorldRender.end();
 	}
 }
