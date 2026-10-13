@@ -109,7 +109,7 @@
   "zerovisual.module.minimap.desc": "Карта загруженной местности вокруг вас с вашими точками",
   "zerovisual.module.chatheads.desc": "Голова игрока рядом с его сообщением в чате",
   "zerovisual.module.totempop.desc": "Звезда логотипа вместо анимации тотема и счётчик тотемов над игроками",
-  "zerovisual.module.starpet.desc": "Объёмная звёздочка-питомец бегает за вами (видите только вы)",
+  "zerovisual.module.starpet.desc": "Объёмная звёздочка: подбегает, когда вы отходите дальше 4 блоков (видите только вы)",
   "zerovisual.module.lowhealth.desc": "Красная пульсирующая виньетка при низком здоровье",
   "zerovisual.module.glintcolor.desc": "Свой цвет блеска зачарований",
   "zerovisual.module.customsky.desc": "Галактика, реалистичное небо или чёрная дыра вместо обычного неба"

@@ -6,7 +6,6 @@ import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.render.StarShape;
-import com.zerovisual.setting.BooleanSetting;
 import com.zerovisual.setting.NumberSetting;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.block.BlockState;
@@ -25,20 +24,23 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 /**
- * A puffy 3D logo star that runs after you on the ground: the two lower rays are its legs,
- * it hops with every step, leans forward and turns where it runs. Only you see it.
+ * A puffy 3D logo star on the ground. It stays where it is until you are more than 4 blocks away,
+ * then runs up to 1 block from you: the two lower rays are its legs, it hops with every step,
+ * leans forward and turns where it runs. Only you see it.
  */
 public class StarPet extends Module {
 	/** Ray angles, tip up: 0 top, 1 left arm, 2 left leg, 3 right leg, 4 right arm. */
 	private static final float INNER = 0.47f;
 	private static final float DEPTH = 0.42f;
 	private static final Vector3f LIGHT = new Vector3f(0.35f, 0.9f, 0.45f).normalize();
+	/** Starts running when the player is farther than this, stops this close to them, teleports beyond the last. */
+	private static final double START = 4, STOP = 1, TELEPORT = 24;
 
 	public final NumberSetting size = add(new NumberSetting("Size", 1, 0.5, 2, 0.1));
-	public final BooleanSetting eyes = add(new BooleanSetting("Eyes", true));
 
 	private Vec3d pos, prevPos;
 	private double fallSpeed;
+	private boolean chasing;
 	private float yaw, prevYaw;
 	/** Walk cycle, advanced by the distance run. */
 	private float phase, prevPhase;
@@ -46,7 +48,7 @@ public class StarPet extends Module {
 	private float run, prevRun;
 
 	public StarPet() {
-		super("StarPet", "A little 3D star that runs after you (only you see it)", Category.COSMETICS);
+		super("StarPet", "A 3D star that runs up to you when you are more than 4 blocks away (only you see it)", Category.COSMETICS);
 	}
 
 	@Override
@@ -67,22 +69,26 @@ public class StarPet extends Module {
 			return;
 		}
 		Vec3d player = mc.player.getPos();
-		double yawRad = Math.toRadians(mc.player.getBodyYaw());
-		// a spot behind and a little to the right of the player
-		Vec3d target = player.add(Math.sin(yawRad) * 1.4 - Math.cos(yawRad) * 0.6, 0, -Math.cos(yawRad) * 1.4 - Math.sin(yawRad) * 0.6);
-		if (pos == null || pos.squaredDistanceTo(player) > 24 * 24) {
-			pos = new Vec3d(target.x, player.y, target.z);
+		if (pos == null || pos.squaredDistanceTo(player) > TELEPORT * TELEPORT) {
+			double yawRad = Math.toRadians(mc.player.getBodyYaw());
+			// (re)appear one block behind the player
+			pos = player.add(Math.sin(yawRad) * STOP, 0, -Math.cos(yawRad) * STOP);
 			prevPos = pos;
 			fallSpeed = 0;
+			chasing = false;
 		}
 		prevPos = pos;
 		prevYaw = yaw;
 		prevPhase = phase;
 		prevRun = run;
 
-		double dx = target.x - pos.x, dz = target.z - pos.z;
+		// stays where it is until the player is more than 4 blocks away, then runs up to 1 block from them
+		double dx = player.x - pos.x, dz = player.z - pos.z;
 		double dist = Math.sqrt(dx * dx + dz * dz);
-		double step = dist > 0.5 ? Math.min(dist * 0.3, 0.42) : 0;
+		if (dist > START) chasing = true;
+		double left = dist - STOP;
+		if (left <= 0.05) chasing = false;
+		double step = chasing ? Math.min(Math.max(left * 0.3, 0.12), Math.min(0.42, left)) : 0;
 		double nx = pos.x + (step > 0 ? dx / dist * step : 0), nz = pos.z + (step > 0 ? dz / dist * step : 0);
 
 		double ground = groundY(nx, nz, Math.max(pos.y, player.y));
@@ -152,7 +158,6 @@ public class StarPet extends Module {
 			.rotateX((float) Math.toRadians(lean))
 			.scale(1 + breathe, 1 - breathe, 1 + breathe);
 		drawBody(model, r, legSwing, running, time);
-		if (eyes.get()) drawEyes(model, r, time);
 
 		RenderSystem.enableCull();
 	}
@@ -221,23 +226,5 @@ public class StarPet extends Module {
 		int c = ColorUtil.lerp(StarShape.LEFT, StarShape.RIGHT, t);
 		int red = Math.round(((c >> 16) & 0xFF) * light), green = Math.round(((c >> 8) & 0xFF) * light), blue = Math.round((c & 0xFF) * light);
 		b.vertex(model, p.x, p.y, p.z).color(0xFF000000 | red << 16 | green << 8 | blue);
-	}
-
-	/** Two eyes on the front, blinking now and then. */
-	private static void drawEyes(Matrix4f model, float r, float time) {
-		float blink = (time % 4f) < 0.12f ? 0.15f : 1f;
-		for (int side = -1; side <= 1; side += 2) {
-			float x = side * r * 0.17f, y = r * 0.08f;
-			// on the puffy front surface: depth falls off from the center
-			float z = r * DEPTH * (1 - Math.abs(x) / (r * INNER) * 0.9f) + 0.004f;
-			Matrix4f eye = new Matrix4f(model).translate(x, y, z);
-			float w = r * 0.075f, h = r * 0.13f * blink;
-			Render2D.shape(eye, -w, -h, w * 2, h * 2, w, 0, 0, 0xFF101018, 0xFF101018, 0xFF101018, 0xFF101018);
-			if (blink > 0.5f) {
-				float g = w * 0.45f;
-				Render2D.shape(new Matrix4f(eye).translate(w * 0.25f, h * 0.35f, 0.001f), -g, -g, g * 2, g * 2, g, 0, 0,
-					0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
-			}
-		}
 	}
 }
