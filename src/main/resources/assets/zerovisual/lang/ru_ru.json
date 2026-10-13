@@ -103,5 +103,8 @@
   "zerovisual.module.watermark.desc": "Логотип клиента, FPS и время",
   "zerovisual.module.waypoints.desc": "Свои точки в мире с расстоянием (по умолчанию J — список)",
   "zerovisual.module.wings.desc": "Крылья за спиной (вид от 3-го лица)",
-  "zerovisual.module.zoom.desc": "Приближение камеры, пока зажата клавиша (по умолчанию C)"
+  "zerovisual.module.zoom.desc": "Приближение камеры, пока зажата клавиша (по умолчанию C)",
+  "zerovisual.module.nametags.desc": "Красивые ники игроков со здоровьем, пингом и бронёй",
+  "zerovisual.module.motionblur.desc": "Размытие изображения при движении камеры",
+  "zerovisual.module.minimap.desc": "Карта загруженной местности вокруг вас с вашими точками"
 }

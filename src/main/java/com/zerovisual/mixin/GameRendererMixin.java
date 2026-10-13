@@ -3,9 +3,11 @@ package com.zerovisual.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.zerovisual.ZeroVisualClient;
 import com.zerovisual.module.impl.visuals.AspectRatio;
+import com.zerovisual.module.impl.visuals.MotionBlur;
 import com.zerovisual.module.impl.visuals.NoHurtCam;
 import com.zerovisual.module.impl.visuals.Zoom;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.util.math.MatrixStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,5 +31,11 @@ public class GameRendererMixin {
 	@Inject(method = "tiltViewWhenHurt", at = @At("HEAD"), cancellable = true)
 	private void zerovisual$noHurtCam(MatrixStack matrices, float tickDelta, CallbackInfo ci) {
 		if (ZeroVisualClient.get().modules().get(NoHurtCam.class).isEnabled()) ci.cancel();
+	}
+
+	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;drawEntityOutlinesFramebuffer()V", shift = At.Shift.AFTER))
+	private void zerovisual$motionBlur(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
+		MotionBlur motionBlur = ZeroVisualClient.get().modules().get(MotionBlur.class);
+		if (motionBlur.isEnabled()) motionBlur.apply();
 	}
 }

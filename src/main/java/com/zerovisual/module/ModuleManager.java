@@ -9,7 +9,10 @@ import com.zerovisual.module.impl.cosmetics.Wings;
 import com.zerovisual.module.impl.cosmetics.KillEffect;
 import com.zerovisual.module.impl.cosmetics.Trails;
 import com.zerovisual.module.impl.hud.Compass;
+import com.zerovisual.module.impl.hud.Minimap;
 import com.zerovisual.module.impl.hud.PlayerView;
+import com.zerovisual.module.impl.visuals.MotionBlur;
+import com.zerovisual.module.impl.visuals.Nametags;
 import com.zerovisual.module.impl.visuals.DamageNumbers;
 import com.zerovisual.module.impl.visuals.Ambience;
 import com.zerovisual.module.impl.visuals.ItemPhysics;
@@ -80,6 +83,8 @@ public class ModuleManager {
 		add(new Freelook());
 		add(new TargetEsp());
 		add(new DamageNumbers());
+		add(new Nametags());
+		add(new MotionBlur());
 
 		// Cosmetics
 		add(new Cape());
@@ -107,6 +112,7 @@ public class ModuleManager {
 		add(new Saturation());
 		add(new Compass());
 		add(new PlayerView());
+		add(new Minimap());
 
 		// Utilities
 		add(new ClickGui());

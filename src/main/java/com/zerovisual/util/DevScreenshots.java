@@ -32,6 +32,7 @@ public final class DevScreenshots {
 	private static boolean splashShot;
 	private static int splashTicks;
 	private static int movingTicks;
+	private static int spinTicks;
 	private static String pendingShot;
 	private static int pendingShotTicks;
 
@@ -97,6 +98,10 @@ public final class DevScreenshots {
 			mc.player.setVelocity(look.x, mc.player.getVelocity().y, look.z);
 			movingTicks--;
 		}
+		if (spinTicks > 0) {
+			mc.player.setYaw(mc.player.getYaw() + 9);
+			spinTicks--;
+		}
 		if (pendingShot != null && --pendingShotTicks <= 0) {
 			shot(mc, pendingShot);
 			pendingShot = null;
@@ -106,6 +111,10 @@ public final class DevScreenshots {
 		switch (step) {
 			case 0 -> {
 				ZeroVisualClient.get().modules().get(NoHurtCam.class).toggle(); // shows a notification
+				var modules = ZeroVisualClient.get().modules();
+				modules.get(com.zerovisual.module.impl.visuals.Nametags.class).setEnabled(true);
+				modules.get(com.zerovisual.module.impl.visuals.Nametags.class).self.set(true);
+				modules.get(com.zerovisual.module.impl.hud.Minimap.class).setEnabled(true);
 				summonItems(mc);
 				var waypoints = ZeroVisualClient.get().waypoints();
 				if (waypoints.current().isEmpty()) {
@@ -151,6 +160,13 @@ public final class DevScreenshots {
 			case 8 -> shot(mc, "zv_world_chat");
 			case 9 -> mc.setScreen(new com.zerovisual.gui.WaypointsScreen(null));
 			case 10 -> shot(mc, "zv_world_waypoints");
+			case 11 -> {
+				mc.setScreen(null);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.MotionBlur.class).setEnabled(true);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.FullBright.class).setEnabled(true);
+				spinTicks = 60;
+			}
+			case 12 -> shot(mc, "zv_world_motionblur");
 			default -> mc.scheduleStop();
 		}
 		step++;
@@ -172,6 +188,8 @@ public final class DevScreenshots {
 		server.execute(() -> {
 			server.getCommandManager().executeWithPrefix(server.getCommandSource(), "give " + player + " minecraft:totem_of_undying 3");
 			server.getCommandManager().executeWithPrefix(server.getCommandSource(), "give " + player + " minecraft:diamond_pickaxe 1");
+			server.getCommandManager().executeWithPrefix(server.getCommandSource(), "item replace entity " + player + " armor.chest with minecraft:diamond_chestplate");
+			server.getCommandManager().executeWithPrefix(server.getCommandSource(), "item replace entity " + player + " armor.head with minecraft:iron_helmet");
 			// survival shows the hunger bar (Saturation)
 			server.getCommandManager().executeWithPrefix(server.getCommandSource(), "gamemode survival " + player);
 			server.getCommandManager().executeWithPrefix(server.getCommandSource(), String.format(java.util.Locale.ROOT,

@@ -12,6 +12,7 @@ import com.zerovisual.module.impl.cosmetics.HitSound;
 import com.zerovisual.module.impl.cosmetics.Wings;
 import com.zerovisual.module.impl.cosmetics.KillEffect;
 import com.zerovisual.module.impl.cosmetics.Trails;
+import com.zerovisual.module.impl.visuals.Nametags;
 import com.zerovisual.module.impl.visuals.DamageNumbers;
 import com.zerovisual.module.impl.visuals.TargetEsp;
 import com.zerovisual.util.TargetTracker;
@@ -120,6 +121,8 @@ public class ZeroVisualClient implements ClientModInitializer {
 		});
 
 		WorldRenderEvents.END.register(context -> {
+			Nametags nametags = modules.get(Nametags.class);
+			if (nametags.isEnabled()) nametags.render(context);
 			Waypoints waypointsModule = modules.get(Waypoints.class);
 			if (waypointsModule.isEnabled()) waypointsModule.render(context);
 		});
