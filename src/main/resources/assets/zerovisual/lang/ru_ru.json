@@ -81,7 +81,7 @@
   "zerovisual.module.hitsound.desc": "Звук попадания по цели (слышите только вы)",
   "zerovisual.module.infohud.desc": "Пинг, скорость и адрес сервера",
   "zerovisual.module.itemphysics.desc": "Выброшенные предметы лежат на земле плашмя",
-  "zerovisual.module.jumpcircles.desc": "Круги на земле при прыжке",
+  "zerovisual.module.jumpcircles.desc": "Круги или звезда логотипа на земле при прыжке",
   "zerovisual.module.keystrokes.desc": "Нажатия WASD, мыши (с CPS) и пробела",
   "zerovisual.module.killeffect.desc": "Эффект при убийстве цели (виден только вам)",
   "zerovisual.module.lowfire.desc": "Опускает огонь на экране, когда вы горите",

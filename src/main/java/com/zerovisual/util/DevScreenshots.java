@@ -170,6 +170,33 @@ public final class DevScreenshots {
 				spinTicks = 60;
 			}
 			case 12 -> shot(mc, "zv_world_motionblur");
+			case 13 -> {
+				// an open platform high above the terrain, so walls do not hide the effect
+				String name = mc.player.getName().getString();
+				runCommand(mc, "execute at " + name + " run fill ~-5 ~30 ~-5 ~5 ~30 ~5 minecraft:smooth_stone");
+				runCommand(mc, "execute at " + name + " run tp " + name + " ~ ~31 ~");
+			}
+			case 14 -> {
+				// JumpCircles star modes, looking down at the feet
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.MotionBlur.class).setEnabled(false);
+				spinTicks = 0;
+				mc.player.setPitch(75);
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.setEnabled(true);
+				jump.mode.set("Star");
+				jump.spawn(mc.player.getPos());
+				pendingShot = "zv_world_star";
+				pendingShotTicks = 5;
+			}
+			case 15 -> {
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.mode.set("Shatter");
+				jump.breakAfter.set(0.3);
+				jump.spawn(mc.player.getPos());
+				// 0.25 s appear + 0.3 s whole, then a quarter of the shatter
+				pendingShot = "zv_world_shatter";
+				pendingShotTicks = 14;
+			}
 			default -> mc.scheduleStop();
 		}
 		step++;
