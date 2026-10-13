@@ -50,6 +50,8 @@ public final class SpaceTextures {
 		for (int f = 0; f < 6; f++) {
 			NativeImageBackedTexture texture = new NativeImageBackedTexture(images[f]);
 			texture.setFilter(true, false);
+			// clamp, not repeat: with smoothing, repeat blends each edge with the opposite one and every cube edge shows a seam
+			texture.setClamp(true);
 			result[f] = Identifier.of("zerovisual", "sky/" + palette.name + "_" + f);
 			MinecraftClient.getInstance().getTextureManager().registerTexture(result[f], texture);
 		}
