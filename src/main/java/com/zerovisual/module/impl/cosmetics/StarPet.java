@@ -69,10 +69,13 @@ public class StarPet extends Module {
 			return;
 		}
 		Vec3d player = mc.player.getPos();
-		if (pos == null || pos.squaredDistanceTo(player) > TELEPORT * TELEPORT) {
+		// horizontal distance only: flying high above it does not make it teleport
+		if (pos == null || horizontalDistance(pos, player) > TELEPORT) {
 			double yawRad = Math.toRadians(mc.player.getBodyYaw());
-			// (re)appear one block behind the player
-			pos = player.add(Math.sin(yawRad) * STOP, 0, -Math.cos(yawRad) * STOP);
+			// (re)appear one block behind the player, on the ground below them
+			double x = player.x + Math.sin(yawRad) * STOP, z = player.z - Math.cos(yawRad) * STOP;
+			double ground = groundY(x, z, player.y);
+			pos = new Vec3d(x, Double.isNaN(ground) ? player.y : ground, z);
 			prevPos = pos;
 			fallSpeed = 0;
 			chasing = false;
@@ -91,8 +94,9 @@ public class StarPet extends Module {
 		double step = chasing ? Math.min(Math.max(left * 0.3, 0.12), Math.min(0.42, left)) : 0;
 		double nx = pos.x + (step > 0 ? dx / dist * step : 0), nz = pos.z + (step > 0 ? dz / dist * step : 0);
 
-		double ground = groundY(nx, nz, Math.max(pos.y, player.y));
-		if (Double.isNaN(ground)) ground = player.y;
+		// the ground under the star itself (not the player): it keeps running on the ground while you fly
+		double ground = groundY(nx, nz, pos.y);
+		if (Double.isNaN(ground)) ground = pos.y;
 		double ny;
 		if (ground >= pos.y - 0.01) {
 			// steps up instantly (the hop hides it)
@@ -113,10 +117,15 @@ public class StarPet extends Module {
 		yaw += MathHelper.wrapDegrees(wanted - yaw) * 0.35f;
 	}
 
-	/** Top of the first block with collision at or below {@code fromY + 2}, or NaN. */
+	private static double horizontalDistance(Vec3d a, Vec3d b) {
+		double dx = a.x - b.x, dz = a.z - b.z;
+		return Math.sqrt(dx * dx + dz * dz);
+	}
+
+	/** Top of the first block with collision from {@code fromY + 2} down (up to 64 blocks), or NaN. */
 	private double groundY(double x, double z, double fromY) {
 		BlockPos.Mutable p = new BlockPos.Mutable(MathHelper.floor(x), MathHelper.floor(fromY) + 2, MathHelper.floor(z));
-		for (int i = 0; i < 10; i++, p.move(Direction.DOWN)) {
+		for (int i = 0; i < 66 && p.getY() >= mc.world.getBottomY(); i++, p.move(Direction.DOWN)) {
 			BlockState state = mc.world.getBlockState(p);
 			VoxelShape shape = state.getCollisionShape(mc.world, p);
 			if (!shape.isEmpty()) return p.getY() + shape.getMax(Direction.Axis.Y);
