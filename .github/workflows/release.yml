@@ -37,7 +37,8 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build
           jar=$(ls build/libs/zerovisual-*.jar | grep -v sources)
-          unzip -l "$jar" | grep -q 'META-INF/zerovisual.sig' || { echo "The jar is not signed: is ZV_SIGNING_KEY set?"; exit 1; }
+          # no pipe into grep -q: with pipefail the early exit of grep fails the whole check
+          unzip -l "$jar" META-INF/zerovisual.sig > /dev/null || { echo "The jar is not signed: is ZV_SIGNING_KEY set?"; exit 1; }
           sha256sum "$jar" | sed 's|build/libs/||' > "$jar.sha256"
           echo "JAR=$jar" >> "$GITHUB_ENV"
 
