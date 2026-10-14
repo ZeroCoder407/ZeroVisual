@@ -54,5 +54,7 @@
   "zerovisual.reconnect.cancel": "Cancel auto reconnect",
   "zerovisual.screenshot": "Screenshot",
   "zerovisual.screenshot.copied": "Copied to clipboard",
-  "zerovisual.screenshot.saved": "Saved: %s"
+  "zerovisual.screenshot.saved": "Saved: %s",
+  "zerovisual.build.unofficial": "Unofficial build",
+  "zerovisual.build.unofficial.hint": "Not an official ZeroVisual release. Official builds: github.com/ZeroCoder407/ZeroVisual"
 }

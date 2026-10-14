@@ -3,7 +3,7 @@
 	"id": "zerovisual",
 	"version": "${version}",
 	"name": "ZeroVisual",
-	"description": "Free and open-source legit visual client: HUD, visuals and QoL. No cheats.",
+	"description": "Free and open-source legit visual client: HUD, visuals and QoL. No cheats. Official builds only from github.com/ZeroCoder407/ZeroVisual; modified versions may not use the ZeroVisual name or logo.",
 	"authors": [
 		"ZeroCoder407"
 	],

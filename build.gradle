@@ -65,12 +65,57 @@ jar {
 	}
 }
 
+// Signs the remapped jar so the client can tell official builds apart (see BuildVerifier and TRADEMARKS.md).
+// The private key comes from ~/.gradle/gradle.properties (zvSigningKey) or the ZV_SIGNING_KEY environment
+// variable (GitHub Actions secret). Without it the jar stays unsigned and shows "Unofficial build" in game.
+tasks.register("signModJar") {
+	group = "zerovisual"
+	description = "Signs the mod jar with the ZeroVisual release key"
+	dependsOn remapJar
+	def modJar = remapJar.archiveFile
+	def key = project.findProperty("zvSigningKey") ?: System.getenv("ZV_SIGNING_KEY")
+	inputs.file(modJar)
+	doLast {
+		def jarFile = modJar.get().asFile
+		if (!key) {
+			logger.warn("No signing key: ${jarFile.name} is unsigned (Unofficial build)")
+			return
+		}
+		def sigEntry = "META-INF/zerovisual.sig"
+		// same digest as BuildVerifier: per file name, zero byte, sha256 of content, sorted by name
+		def total = java.security.MessageDigest.getInstance("SHA-256")
+		new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+			zip.entries().toList()
+				.findAll { !it.directory && it.name != sigEntry }
+				.sort { a, b -> a.name <=> b.name }
+				.each { entry ->
+					total.update(entry.name.getBytes("UTF-8"))
+					total.update((byte) 0)
+					zip.getInputStream(entry).withCloseable { total.update(java.security.MessageDigest.getInstance("SHA-256").digest(it.readAllBytes())) }
+				}
+		}
+		def privateKey = java.security.KeyFactory.getInstance("Ed25519")
+			.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(Base64.decoder.decode(key.toString().trim())))
+		def signer = java.security.Signature.getInstance("Ed25519")
+		signer.initSign(privateKey)
+		signer.update(total.digest())
+		def signature = Base64.encoder.encodeToString(signer.sign())
+		java.nio.file.FileSystems.newFileSystem(jarFile.toPath(), (ClassLoader) null).withCloseable { fs ->
+			def target = fs.getPath(sigEntry)
+			java.nio.file.Files.createDirectories(target.parent)
+			java.nio.file.Files.writeString(target, signature)
+		}
+		logger.lifecycle("Signed ${jarFile.name}")
+	}
+}
+remapJar.finalizedBy signModJar
+
 // Builds the mod and copies it into a launcher instance's mods folder.
 // Default: Lexplosion instance "zerovisual test". Override: -PdeployDir="C:/path/to/mods"
 tasks.register('deployToLauncher') {
 	group = 'zerovisual'
 	description = 'Builds the mod and copies the jar into the launcher mods folder'
-	dependsOn remapJar
+	dependsOn remapJar, signModJar
 
 	def modsDir = file(project.findProperty('deployDir')
 		?: "${System.getenv('APPDATA')}/.lexplosion/instances/zerovisual test/mods")

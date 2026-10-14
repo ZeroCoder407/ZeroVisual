@@ -18,6 +18,7 @@ import com.zerovisual.module.impl.cosmetics.Trails;
 import com.zerovisual.module.impl.visuals.Nametags;
 import com.zerovisual.module.impl.visuals.DamageNumbers;
 import com.zerovisual.module.impl.visuals.TargetEsp;
+import com.zerovisual.util.BuildVerifier;
 import com.zerovisual.util.TargetTracker;
 import com.zerovisual.module.impl.utilities.AutoReconnect;
 import com.zerovisual.module.impl.utilities.AutoTool;
@@ -60,6 +61,7 @@ public class ZeroVisualClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		instance = this;
+		BuildVerifier.start();
 
 		Zoom.registerKeyBinding();
 		Freelook.registerKeyBinding();
@@ -84,6 +86,9 @@ public class ZeroVisualClient implements ClientModInitializer {
 				Screens.getButtons(screen).add(new AccountButton(screen, 6, 6));
 			}
 			if (AutoReconnect.isDisconnectScreen(screen)) modules.get(AutoReconnect.class).onDisconnectedScreen(screen);
+			if (screen instanceof TitleScreen) {
+				ScreenEvents.afterRender(screen).register((s2, ctx, mouseX, mouseY, delta) -> BuildVerifier.renderTitleWarning(ctx, s2.width, s2.height));
+			}
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> modules.onTick());
@@ -97,6 +102,7 @@ public class ZeroVisualClient implements ClientModInitializer {
 			modules.renderHud(ctx, tickCounter.getTickDelta(false));
 			AutoTool autoTool = modules.get(AutoTool.class);
 			if (autoTool.isEnabled()) autoTool.render(ctx);
+			BuildVerifier.renderHudMark(ctx);
 			LowHealth lowHealth = modules.get(LowHealth.class);
 			if (lowHealth.isEnabled()) lowHealth.render(ctx);
 			TotemPop totemPop = modules.get(TotemPop.class);
