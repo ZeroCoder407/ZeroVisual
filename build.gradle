@@ -95,7 +95,9 @@ tasks.register("signModJar") {
 				}
 		}
 		def privateKey = java.security.KeyFactory.getInstance("Ed25519")
-			.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(Base64.decoder.decode(key.toString().trim())))
+			.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(Base64.decoder.decode(
+				// also accept the whole "zvSigningKey=..." line pasted as the secret
+				key.toString().trim().replaceFirst(/^zvSigningKeys*=s*/, ""))))
 		def signer = java.security.Signature.getInstance("Ed25519")
 		signer.initSign(privateKey)
 		signer.update(total.digest())
