@@ -41,8 +41,8 @@ import org.joml.Vector3f;
  * 4 blocks away, then runs up to 1 block from you.
  * Star: a puffy 3D logo star whose two lower rays are its legs; it hops, leans and turns where it runs.
  * Mini me: a small copy of your skin in the armor chosen in the settings, with empty hands. It follows you
- * with its head, glances around, breathes, bounces while running, hops when it arrives
- * and sits down when you stand still for a long time.
+ * with its head, glances around, breathes, bounces while running and hops when it arrives. Standing still it
+ * plays idle animations in turn: swinging both arms, tapping a foot and sitting on the floor.
  */
 public class Pet extends Module {
 	/** Ray angles, tip up: 0 top, 1 left arm, 2 left leg, 3 right leg, 4 right arm. */
@@ -51,11 +51,17 @@ public class Pet extends Module {
 	private static final Vector3f LIGHT = new Vector3f(0.35f, 0.9f, 0.45f).normalize();
 	/** Starts running when the player is farther than this, stops this close to them, teleports beyond the last. */
 	private static final double START = 4, STOP = 1, TELEPORT = 24;
+	/** Mini me idle animations, in the order they play. */
+	public static final int IDLE_NONE = -1, IDLE_ARMS = 0, IDLE_TAP = 1, IDLE_SIT = 2;
+	private static final float IDLE_DELAY = 2, IDLE_ARMS_SECONDS = 6, IDLE_TAP_SECONDS = 5, IDLE_SIT_SECONDS = 9;
+
+	/** The Mini me render state being drawn right now and its idle pose, read by BipedEntityModelMixin. */
+	public static Object posedState;
+	public static int poseAnimation = IDLE_NONE;
+	public static float poseBlend, poseTime;
 
 	public final ModeSetting type = add(new ModeSetting("Type", "Star", "Star", "Mini me"));
 	public final NumberSetting size = add(new NumberSetting("Size", 1, 0.5, 2, 0.1));
-	/** Mini me sits down after you have not moved for this many seconds. */
-	public final NumberSetting sitAfter = add(new NumberSetting("Sit after", 15, 3, 60, 1));
 	/** Armor worn by Mini me (your own armor and items are not copied). */
 	public final ModeSetting armor = add(new ModeSetting("Armor", "None", "None", "Iron", "Diamond", "Netherite"));
 
@@ -67,9 +73,8 @@ public class Pet extends Module {
 	private float phase, prevPhase;
 	/** 0 standing .. 1 running, smoothed. */
 	private float run, prevRun;
-	/** How long the player has not moved, in ticks, and the 0..1 sitting progress of Mini me. */
-	private int stillTicks;
-	private Vec3d lastPlayerPos;
+	/** Since when Mini me stands still (-1 while running) and its 0..1 sitting progress. */
+	private long idleSince = -1;
 	private float sit, prevSit;
 	private PlayerEntityRenderState miniState;
 	/** Mini me: smoothed head direction, when it last arrived next to you (a happy hop) and frame timing. */
@@ -148,13 +153,40 @@ public class Pet extends Module {
 			: (float) Math.toDegrees(Math.atan2(-(player.x - pos.x), player.z - pos.z));
 		yaw += MathHelper.wrapDegrees(wanted - yaw) * 0.35f;
 
-		// the player standing still for a long time makes Mini me sit down; any movement gets it up
-		if (lastPlayerPos != null && lastPlayerPos.squaredDistanceTo(player) < 0.0004) stillTicks++;
-		else stillTicks = 0;
-		lastPlayerPos = player;
+		// Mini me idle animations start a moment after it stops; running interrupts them
+		if (chasing || step > 0.02) idleSince = -1;
+		else if (idleSince < 0) idleSince = System.currentTimeMillis();
 		prevSit = sit;
-		boolean sitting = stillTicks > sitAfter.get() * 20 && !chasing;
-		sit += ((sitting ? 1f : 0f) - sit) * 0.15f;
+		sit += ((idleAnimation(System.currentTimeMillis())[0] == IDLE_SIT ? 1f : 0f) - sit) * 0.15f;
+	}
+
+	/**
+	 * Current idle animation of Mini me and its 0..1 strength (eased in and out) and local time in seconds:
+	 * after standing for a moment it cycles: swinging both arms, tapping a foot, sitting on the floor.
+	 */
+	private float[] idleAnimation(long now) {
+		if (idleSince < 0) return new float[]{IDLE_NONE, 0, 0};
+		float t = (now - idleSince) / 1000f - IDLE_DELAY;
+		if (t < 0) return new float[]{IDLE_NONE, 0, 0};
+		float cycle = IDLE_ARMS_SECONDS + IDLE_TAP_SECONDS + IDLE_SIT_SECONDS;
+		t %= cycle;
+		int animation;
+		float local, length;
+		if (t < IDLE_ARMS_SECONDS) {
+			animation = IDLE_ARMS;
+			local = t;
+			length = IDLE_ARMS_SECONDS;
+		} else if (t < IDLE_ARMS_SECONDS + IDLE_TAP_SECONDS) {
+			animation = IDLE_TAP;
+			local = t - IDLE_ARMS_SECONDS;
+			length = IDLE_TAP_SECONDS;
+		} else {
+			animation = IDLE_SIT;
+			local = t - IDLE_ARMS_SECONDS - IDLE_TAP_SECONDS;
+			length = IDLE_SIT_SECONDS;
+		}
+		float blend = Math.min(1f, Math.min(local / 0.5f, (length - local) / 0.5f));
+		return new float[]{animation, Math.max(0, blend), local};
 	}
 
 	private static double horizontalDistance(Vec3d a, Vec3d b) {
@@ -310,8 +342,17 @@ public class Pet extends Module {
 		matrices.scale(scale, scale * (1 + breathe), scale);
 		VertexConsumerProvider.Immediate consumers = mc.getBufferBuilders().getEntityVertexConsumers();
 		int light = WorldRenderer.getLightmapCoordinates(mc.world, BlockPos.ofFloored(p.add(0, 0.3, 0)));
-		renderer.render(state, matrices, consumers, light);
-		consumers.draw();
+		float[] idle = idleAnimation(now);
+		posedState = state;
+		poseAnimation = (int) idle[0];
+		poseBlend = idle[1] * (1 - running);
+		poseTime = idle[2];
+		try {
+			renderer.render(state, matrices, consumers, light);
+			consumers.draw();
+		} finally {
+			posedState = null;
+		}
 	}
 
 	private static final ItemStack[] NO_ARMOR = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};

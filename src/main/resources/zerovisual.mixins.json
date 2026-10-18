@@ -5,6 +5,7 @@
 	"client": [
 		"AbstractClientPlayerEntityMixin",
 		"BackgroundRendererMixin",
+		"BipedEntityModelMixin",
 		"CameraMixin",
 		"ChatHudMixin",
 		"ClientPlayNetworkHandlerMixin",

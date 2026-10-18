@@ -303,7 +303,6 @@ public final class DevScreenshots {
 				var pet = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Pet.class);
 				pet.setEnabled(true);
 				pet.type.set("Mini me");
-				pet.sitAfter.set(3.0);
 				pet.armor.set("Diamond");
 			}
 			case 34 -> {
