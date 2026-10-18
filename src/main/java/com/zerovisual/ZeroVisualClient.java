@@ -5,7 +5,7 @@ import com.zerovisual.config.ConfigManager;
 import com.zerovisual.gui.AccountButton;
 import com.zerovisual.gui.HudEditor;
 import com.zerovisual.module.ModuleManager;
-import com.zerovisual.module.impl.cosmetics.StarPet;
+import com.zerovisual.module.impl.cosmetics.Pet;
 import com.zerovisual.module.impl.cosmetics.TotemPop;
 import com.zerovisual.module.impl.hud.LowHealth;
 import com.zerovisual.module.impl.cosmetics.HitParticles;
@@ -113,8 +113,8 @@ public class ZeroVisualClient implements ClientModInitializer {
 		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
 			JumpCircles jumpCircles = modules.get(JumpCircles.class);
 			if (jumpCircles.isEnabled()) jumpCircles.render(context);
-			StarPet starPet = modules.get(StarPet.class);
-			if (starPet.isEnabled()) starPet.render(context);
+			Pet pet = modules.get(Pet.class);
+			if (pet.isEnabled()) pet.render(context);
 			TotemPop totemPopWorld = modules.get(TotemPop.class);
 			if (totemPopWorld.isEnabled()) totemPopWorld.renderWorld(context);
 			ChinaHat chinaHat = modules.get(ChinaHat.class);

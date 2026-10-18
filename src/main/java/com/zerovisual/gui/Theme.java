@@ -35,7 +35,13 @@ public final class Theme {
 
 	/** Dark translucent card with a soft shadow, used by HUD elements. */
 	public static void card(DrawContext ctx, float x, float y, float w, float h) {
-		Render2D.shadow(ctx, x, y + 1, w, h, RADIUS, 6, SHADOW);
-		Render2D.rect(ctx, x, y, w, h, RADIUS, 0xE00D0D12);
+		card(ctx, x, y, w, h, 0xE0 / 255f);
+	}
+
+	/** Card with a custom background opacity (0..1); the shadow fades with it. */
+	public static void card(DrawContext ctx, float x, float y, float w, float h, float opacity) {
+		if (opacity <= 0.01f) return;
+		Render2D.shadow(ctx, x, y + 1, w, h, RADIUS, 6, ColorUtil.fade(SHADOW, Math.min(1f, opacity / (0xE0 / 255f))));
+		Render2D.rect(ctx, x, y, w, h, RADIUS, ColorUtil.withAlpha(0xFF0D0D12, opacity));
 	}
 }

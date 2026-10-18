@@ -19,4 +19,23 @@ public class ItemEntityRenderStateMixin implements ItemPhysicsState {
 	public void zerovisual$setOnGround(boolean onGround) {
 		zerovisual$onGround = onGround;
 	}
+
+	@Unique
+	private float zerovisual$velocityX, zerovisual$velocityZ;
+
+	@Override
+	public float zerovisual$velocityX() {
+		return zerovisual$velocityX;
+	}
+
+	@Override
+	public float zerovisual$velocityZ() {
+		return zerovisual$velocityZ;
+	}
+
+	@Override
+	public void zerovisual$setVelocity(float x, float z) {
+		zerovisual$velocityX = x;
+		zerovisual$velocityZ = z;
+	}
 }

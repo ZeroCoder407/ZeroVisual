@@ -243,15 +243,30 @@ public final class DevScreenshots {
 			}
 			case 23 -> shot(mc, "zv_sky_sunset");
 			case 24 -> {
-				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class).mode.set("Black hole");
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.setEnabled(true);
+				sky.mode.set("Black hole");
+				// clean shot for banners: no HUD, no hand, high above the trees, nothing else in view
+				mc.options.hudHidden = true;
+				var m = ZeroVisualClient.get().modules();
+				m.get(com.zerovisual.module.impl.utilities.Waypoints.class).setEnabled(false);
+				m.get(com.zerovisual.module.impl.cosmetics.Pet.class).setEnabled(false);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "effect clear " + who);
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "execute at " + who + " run fill ~-2 140 ~-2 ~2 140 ~2 minecraft:barrier");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 141 ~");
 				mc.player.setYaw(-143.7f);
-				mc.player.setPitch(-21);
+				mc.player.setPitch(-12);
 			}
-			case 25 -> shot(mc, "zv_sky_blackhole");
+			case 25 -> {
+				shot(mc, "zv_sky_blackhole");
+				mc.options.hudHidden = false;
+			}
 			case 26 -> {
 				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class).setEnabled(false);
 				runCommand(mc, "time set 6000");
-				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.StarPet.class).setEnabled(true);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Pet.class).setEnabled(true);
 				var glint = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.GlintColor.class);
 				glint.setEnabled(true);
 				glint.color.set(0xFFFF3050);
@@ -277,19 +292,47 @@ public final class DevScreenshots {
 				// wait for the timed screenshots
 			}
 			case 33 -> {
-				// StarPet close-up without the HUD
+				// Pet (Mini me) close-up without the HUD, on open ground
+				String who = mc.player.getName().getString();
+				runCommand(mc, "execute at " + who + " run spreadplayers ~ ~ 0 1 false " + who);
 				mc.options.hudHidden = true;
 				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
-				mc.player.setPitch(28);
+				mc.player.setPitch(25);
+				var pet = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Pet.class);
+				pet.setEnabled(true);
+				pet.type.set("Mini me");
+				pet.sitAfter.set(3.0);
 			}
-			case 34 -> shot(mc, "zv_pet_stand");
-			case 35 -> {
-				// turn around: the pet runs to its new spot behind the player
+			case 34 -> {
+				// wait for the pet to appear next to the player
+			}
+			case 35 -> shot(mc, "zv_pet_stand");
+			case 36 -> {
+				// turn around: the pet runs to the player
 				mc.player.setYaw(mc.player.getYaw() + 150);
 				mc.player.setBodyYaw(mc.player.getYaw());
 				timedShots.put(ticks + 6, "zv_pet_run");
 			}
-			case 36 -> mc.options.hudHidden = false;
+			case 37, 38, 39 -> {
+				// stand still so Mini me sits down
+			}
+			case 40 -> shot(mc, "zv_pet_sit");
+			case 41 -> {
+				// ItemPhysics: throw the held stack and catch it in the air
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.ItemPhysics.class).setEnabled(true);
+				mc.options.hudHidden = true;
+				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+				mc.player.setPitch(-5);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "item replace entity " + who + " weapon.mainhand with minecraft:golden_apple 16");
+			}
+			case 42 -> {
+				mc.player.dropSelectedItem(true);
+				timedShots.put(ticks + 4, "zv_items_fly");
+				timedShots.put(ticks + 8, "zv_items_fly2");
+			}
+			case 43 -> mc.options.hudHidden = false;
 			default -> mc.scheduleStop();
 		}
 		step++;

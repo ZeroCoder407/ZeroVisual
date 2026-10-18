@@ -1,6 +1,6 @@
 package com.zerovisual.module;
 
-import com.zerovisual.module.impl.cosmetics.StarPet;
+import com.zerovisual.module.impl.cosmetics.Pet;
 import com.zerovisual.module.impl.cosmetics.TotemPop;
 import com.zerovisual.module.impl.cosmetics.Cape;
 import com.zerovisual.module.impl.cosmetics.HitParticles;
@@ -104,7 +104,7 @@ public class ModuleManager {
 		add(new Wings());
 		add(new HitSound());
 		add(new TotemPop());
-		add(new StarPet());
+		add(new Pet());
 
 		// HUD
 		add(new Watermark());

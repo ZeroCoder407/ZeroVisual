@@ -6,12 +6,20 @@ import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.render.StarShape;
+import com.zerovisual.setting.ModeSetting;
 import com.zerovisual.setting.NumberSetting;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.gl.ShaderProgramKeys;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.WorldRenderer;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.PlayerEntityRenderer;
+import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
@@ -24,11 +32,13 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 /**
- * A puffy 3D logo star on the ground. It stays where it is until you are more than 4 blocks away,
- * then runs up to 1 block from you: the two lower rays are its legs, it hops with every step,
- * leans forward and turns where it runs. Only you see it.
+ * A little companion on the ground that only you see. It stays where it is until you are more than
+ * 4 blocks away, then runs up to 1 block from you.
+ * Star: a puffy 3D logo star whose two lower rays are its legs; it hops, leans and turns where it runs.
+ * Mini me: a small copy of your own player model (skin, armor, held items) that looks at you,
+ * waves now and then and sits down when you stand still for a long time.
  */
-public class StarPet extends Module {
+public class Pet extends Module {
 	/** Ray angles, tip up: 0 top, 1 left arm, 2 left leg, 3 right leg, 4 right arm. */
 	private static final float INNER = 0.47f;
 	private static final float DEPTH = 0.42f;
@@ -36,7 +46,10 @@ public class StarPet extends Module {
 	/** Starts running when the player is farther than this, stops this close to them, teleports beyond the last. */
 	private static final double START = 4, STOP = 1, TELEPORT = 24;
 
+	public final ModeSetting type = add(new ModeSetting("Type", "Star", "Star", "Mini me"));
 	public final NumberSetting size = add(new NumberSetting("Size", 1, 0.5, 2, 0.1));
+	/** Mini me sits down after you have not moved for this many seconds. */
+	public final NumberSetting sitAfter = add(new NumberSetting("Sit after", 15, 3, 60, 1));
 
 	private Vec3d pos, prevPos;
 	private double fallSpeed;
@@ -46,9 +59,14 @@ public class StarPet extends Module {
 	private float phase, prevPhase;
 	/** 0 standing .. 1 running, smoothed. */
 	private float run, prevRun;
+	/** How long the player has not moved, in ticks, and the 0..1 sitting progress of Mini me. */
+	private int stillTicks;
+	private Vec3d lastPlayerPos;
+	private float sit, prevSit;
+	private PlayerEntityRenderState miniState;
 
-	public StarPet() {
-		super("StarPet", "A 3D star that runs up to you when you are more than 4 blocks away (only you see it)", Category.COSMETICS);
+	public Pet() {
+		super("Pet", "A star or a mini you that runs up when you are more than 4 blocks away (only you see it)", Category.COSMETICS);
 	}
 
 	@Override
@@ -115,6 +133,14 @@ public class StarPet extends Module {
 			? (float) Math.toDegrees(Math.atan2(-dx, dz))
 			: (float) Math.toDegrees(Math.atan2(-(player.x - pos.x), player.z - pos.z));
 		yaw += MathHelper.wrapDegrees(wanted - yaw) * 0.35f;
+
+		// the player standing still for a long time makes Mini me sit down; any movement gets it up
+		if (lastPlayerPos != null && lastPlayerPos.squaredDistanceTo(player) < 0.0004) stillTicks++;
+		else stillTicks = 0;
+		lastPlayerPos = player;
+		prevSit = sit;
+		boolean sitting = stillTicks > sitAfter.get() * 20 && !chasing;
+		sit += ((sitting ? 1f : 0f) - sit) * 0.15f;
 	}
 
 	private static double horizontalDistance(Vec3d a, Vec3d b) {
@@ -159,6 +185,13 @@ public class StarPet extends Module {
 		RenderSystem.depthMask(true);
 		RenderSystem.disableCull();
 
+		if (type.is("Mini me")) {
+			drawShadow(p, cam, 0.25f * size.getFloat(), 0);
+			RenderSystem.enableCull();
+			renderMini(p, cam, yawNow, cycle, running, MathHelper.lerp(delta, prevSit, sit), time, delta);
+			return;
+		}
+
 		drawShadow(p, cam, r, hop);
 
 		Matrix4f model = new Matrix4f()
@@ -169,6 +202,62 @@ public class StarPet extends Module {
 		drawBody(model, r, legSwing, running, time);
 
 		RenderSystem.enableCull();
+	}
+
+	/** A small copy of the player's own model, posed by the pet's movement. */
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private void renderMini(Vec3d p, Vec3d cam, float bodyYaw, float cycle, float running, float sitting, float time, float delta) {
+		EntityRenderer renderer = mc.getEntityRenderDispatcher().getRenderer(mc.player);
+		if (!(renderer instanceof PlayerEntityRenderer)) return;
+		if (miniState == null) miniState = (PlayerEntityRenderState) renderer.createRenderState();
+		PlayerEntityRenderState state = miniState;
+		renderer.updateRenderState(mc.player, state, delta);
+		float scale = 0.4f * size.getFloat();
+
+		// no name tag, no fire, no sneaking or flying poses: just a little you
+		state.displayName = null;
+		state.playerName = null;
+		state.onFire = false;
+		state.invisible = false;
+		state.isInSneakingPose = false;
+		state.sneaking = false;
+		state.isGliding = false;
+		state.isSwimming = false;
+		state.usingRiptide = false;
+		state.leaningPitch = 0;
+		state.hurt = false;
+		state.deathTime = 0;
+		state.pose = EntityPose.STANDING;
+		state.isUsingItem = false;
+		state.itemUseTime = 0;
+		state.squaredDistanceToCamera = p.squaredDistanceTo(cam);
+
+		// walk cycle from its own running
+		state.limbFrequency = cycle * 1.6f;
+		state.limbAmplitudeMultiplier = running * 0.9f;
+		state.bodyYaw = bodyYaw;
+		state.hasVehicle = sitting > 0.5f;
+
+		// the head looks up at the player (turned at most 60 degrees from the body)
+		Vec3d eyes = mc.player.getLerpedPos(delta).add(0, mc.player.getStandingEyeHeight(), 0);
+		Vec3d head = p.add(0, 1.6 * scale, 0);
+		double dx = eyes.x - head.x, dy = eyes.y - head.y, dz = eyes.z - head.z;
+		float lookYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+		state.yawDegrees = MathHelper.clamp(MathHelper.wrapDegrees(lookYaw - bodyYaw), -60, 60) * (1 - running);
+		state.pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))) * (1 - running);
+
+		// a little wave every few seconds while standing or sitting
+		float wave = (time % 5f) / 0.6f;
+		state.handSwingProgress = running < 0.2f && wave < 1f ? wave : 0;
+
+		MatrixStack matrices = new MatrixStack();
+		// sitting on the ground: the hips go down to the ground with the legs stretched forward
+		matrices.translate(p.x - cam.x, p.y - cam.y - sitting * 0.62 * scale, p.z - cam.z);
+		matrices.scale(scale, scale, scale);
+		VertexConsumerProvider.Immediate consumers = mc.getBufferBuilders().getEntityVertexConsumers();
+		int light = WorldRenderer.getLightmapCoordinates(mc.world, BlockPos.ofFloored(p.add(0, 0.3, 0)));
+		renderer.render(state, matrices, consumers, light);
+		consumers.draw();
 	}
 
 	private void drawShadow(Vec3d p, Vec3d cam, float r, float hop) {
