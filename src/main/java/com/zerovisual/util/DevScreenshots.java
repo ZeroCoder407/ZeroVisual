@@ -294,7 +294,9 @@ public final class DevScreenshots {
 			case 33 -> {
 				// Pet (Mini me) close-up without the HUD, on open ground
 				String who = mc.player.getName().getString();
-				runCommand(mc, "execute at " + who + " run spreadplayers ~ ~ 0 1 false " + who);
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "execute at " + who + " run fill ~-4 150 ~-4 ~4 150 ~4 minecraft:barrier");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
 				mc.options.hudHidden = true;
 				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
 				mc.player.setPitch(25);
@@ -302,6 +304,7 @@ public final class DevScreenshots {
 				pet.setEnabled(true);
 				pet.type.set("Mini me");
 				pet.sitAfter.set(3.0);
+				pet.armor.set("Diamond");
 			}
 			case 34 -> {
 				// wait for the pet to appear next to the player

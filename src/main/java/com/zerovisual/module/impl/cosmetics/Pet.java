@@ -17,9 +17,13 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.EntityPose;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
@@ -29,14 +33,16 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
  * A little companion on the ground that only you see. It stays where it is until you are more than
  * 4 blocks away, then runs up to 1 block from you.
  * Star: a puffy 3D logo star whose two lower rays are its legs; it hops, leans and turns where it runs.
- * Mini me: a small copy of your own player model (skin, armor, held items) that looks at you,
- * waves now and then and sits down when you stand still for a long time.
+ * Mini me: a small copy of your skin in the armor chosen in the settings, with empty hands. It follows you
+ * with its head, glances around, breathes, bounces while running, hops when it arrives
+ * and sits down when you stand still for a long time.
  */
 public class Pet extends Module {
 	/** Ray angles, tip up: 0 top, 1 left arm, 2 left leg, 3 right leg, 4 right arm. */
@@ -50,6 +56,8 @@ public class Pet extends Module {
 	public final NumberSetting size = add(new NumberSetting("Size", 1, 0.5, 2, 0.1));
 	/** Mini me sits down after you have not moved for this many seconds. */
 	public final NumberSetting sitAfter = add(new NumberSetting("Sit after", 15, 3, 60, 1));
+	/** Armor worn by Mini me (your own armor and items are not copied). */
+	public final ModeSetting armor = add(new ModeSetting("Armor", "None", "None", "Iron", "Diamond", "Netherite"));
 
 	private Vec3d pos, prevPos;
 	private double fallSpeed;
@@ -64,6 +72,9 @@ public class Pet extends Module {
 	private Vec3d lastPlayerPos;
 	private float sit, prevSit;
 	private PlayerEntityRenderState miniState;
+	/** Mini me: smoothed head direction, when it last arrived next to you (a happy hop) and frame timing. */
+	private float headYaw, headPitch;
+	private long arrivedAt, lastFrame;
 
 	public Pet() {
 		super("Pet", "A star or a mini you that runs up when you are more than 4 blocks away (only you see it)", Category.COSMETICS);
@@ -108,7 +119,10 @@ public class Pet extends Module {
 		double dist = Math.sqrt(dx * dx + dz * dz);
 		if (dist > START) chasing = true;
 		double left = dist - STOP;
-		if (left <= 0.05) chasing = false;
+		if (left <= 0.05 && chasing) {
+			chasing = false;
+			arrivedAt = System.currentTimeMillis();
+		}
 		double step = chasing ? Math.min(Math.max(left * 0.3, 0.12), Math.min(0.42, left)) : 0;
 		double nx = pos.x + (step > 0 ? dx / dist * step : 0), nz = pos.z + (step > 0 ? dz / dist * step : 0);
 
@@ -232,32 +246,91 @@ public class Pet extends Module {
 		state.itemUseTime = 0;
 		state.squaredDistanceToCamera = p.squaredDistanceTo(cam);
 
-		// walk cycle from its own running
+		// empty hands, no swings, and the armor chosen in the settings instead of yours
+		state.rightHandItemState.clear();
+		state.leftHandItemState.clear();
+		state.headItemRenderState.clear();
+		state.wearingSkullType = null;
+		state.handSwingProgress = 0;
+		state.rightArmPose = BipedEntityModel.ArmPose.EMPTY;
+		state.leftArmPose = BipedEntityModel.ArmPose.EMPTY;
+		ItemStack[] set = armorSet();
+		state.equippedHeadStack = set[0];
+		state.equippedChestStack = set[1];
+		state.equippedLegsStack = set[2];
+		state.equippedFeetStack = set[3];
+
+		long now = System.currentTimeMillis();
+		float dt = lastFrame == 0 ? 0.016f : Math.min(0.1f, (now - lastFrame) / 1000f);
+		lastFrame = now;
+
+		// walk cycle from its own running; the legs slow down smoothly when it stops
 		state.limbFrequency = cycle * 1.6f;
-		state.limbAmplitudeMultiplier = running * 0.9f;
+		state.limbAmplitudeMultiplier = running * 0.85f;
 		state.bodyYaw = bodyYaw;
 		state.hasVehicle = sitting > 0.5f;
 
-		// the head looks up at the player (turned at most 60 degrees from the body)
+		// the head follows you smoothly (at most 60 degrees from the body) and now and then glances aside
 		Vec3d eyes = mc.player.getLerpedPos(delta).add(0, mc.player.getStandingEyeHeight(), 0);
 		Vec3d head = p.add(0, 1.6 * scale, 0);
 		double dx = eyes.x - head.x, dy = eyes.y - head.y, dz = eyes.z - head.z;
-		float lookYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-		state.yawDegrees = MathHelper.clamp(MathHelper.wrapDegrees(lookYaw - bodyYaw), -60, 60) * (1 - running);
-		state.pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))) * (1 - running);
+		float lookYaw = MathHelper.wrapDegrees((float) Math.toDegrees(Math.atan2(-dx, dz)) - bodyYaw);
+		float lookPitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+		float glanceCycle = time % 8f;
+		if (glanceCycle > 6f && glanceCycle < 7.4f && running < 0.1f) {
+			lookYaw += ((int) (time / 8f) % 2 == 0 ? 40f : -40f);
+			lookPitch *= 0.3f;
+		}
+		lookYaw = MathHelper.clamp(lookYaw, -60, 60) * (1 - running * 0.8f);
+		lookPitch *= 1 - running * 0.7f;
+		float follow = 1 - (float) Math.exp(-dt * 7);
+		headYaw += (lookYaw - headYaw) * follow;
+		headPitch += (lookPitch - headPitch) * follow;
+		state.yawDegrees = headYaw;
+		state.pitch = headPitch;
 
-		// a little wave every few seconds while standing or sitting
-		float wave = (time % 5f) / 0.6f;
-		state.handSwingProgress = running < 0.2f && wave < 1f ? wave : 0;
+		// a happy hop when it arrives next to you
+		float hopT = (now - arrivedAt) / 420f;
+		float hop = hopT >= 0 && hopT < 1 ? MathHelper.sin(hopT * MathHelper.PI) * 0.3f : 0;
+		// a bounce on every step while running
+		float bounce = Math.abs(MathHelper.sin(state.limbFrequency * 0.6662f)) * 0.08f * running;
+		// breathing while standing, a gentle sway while sitting
+		float breathe = (1 - running) * MathHelper.sin(time * 2.3f) * 0.015f;
+		float lean = running * 9f;
+		float sway = sitting * MathHelper.sin(time * 1.4f) * 3.5f;
 
 		MatrixStack matrices = new MatrixStack();
 		// sitting on the ground: the hips go down to the ground with the legs stretched forward
-		matrices.translate(p.x - cam.x, p.y - cam.y - sitting * 0.62 * scale, p.z - cam.z);
-		matrices.scale(scale, scale, scale);
+		matrices.translate(p.x - cam.x, p.y - cam.y + (hop + bounce - sitting * 0.62f) * scale, p.z - cam.z);
+		// lean forward while running and sway sideways while sitting, both around the feet
+		double yawRad = Math.toRadians(bodyYaw);
+		float fx = (float) -Math.sin(yawRad), fz = (float) Math.cos(yawRad);
+		matrices.multiply(new Quaternionf().rotationAxis((float) Math.toRadians(lean), fz, 0, -fx));
+		matrices.multiply(new Quaternionf().rotationAxis((float) Math.toRadians(sway), fx, 0, fz));
+		matrices.scale(scale, scale * (1 + breathe), scale);
 		VertexConsumerProvider.Immediate consumers = mc.getBufferBuilders().getEntityVertexConsumers();
 		int light = WorldRenderer.getLightmapCoordinates(mc.world, BlockPos.ofFloored(p.add(0, 0.3, 0)));
 		renderer.render(state, matrices, consumers, light);
 		consumers.draw();
+	}
+
+	private static final ItemStack[] NO_ARMOR = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
+	private static final ItemStack[] IRON = armor(Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS);
+	private static final ItemStack[] DIAMOND = armor(Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS);
+	private static final ItemStack[] NETHERITE = armor(Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS);
+
+	private static ItemStack[] armor(Item head, Item chest, Item legs, Item feet) {
+		return new ItemStack[]{new ItemStack(head), new ItemStack(chest), new ItemStack(legs), new ItemStack(feet)};
+	}
+
+	/** Head, chest, legs, feet for the selected Armor setting. */
+	private ItemStack[] armorSet() {
+		return switch (armor.get()) {
+			case "Iron" -> IRON;
+			case "Diamond" -> DIAMOND;
+			case "Netherite" -> NETHERITE;
+			default -> NO_ARMOR;
+		};
 	}
 
 	private void drawShadow(Vec3d p, Vec3d cam, float r, float hop) {
