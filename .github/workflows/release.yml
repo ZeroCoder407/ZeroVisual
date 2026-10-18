@@ -1,8 +1,13 @@
 name: release
 
-# Push a tag like v0.2.0 (it must match mod_version in gradle.properties).
-# Builds the signed jar and creates a draft release with the jar, its SHA-256 and build provenance.
-# Requires the repository secret ZV_SIGNING_KEY (the zvSigningKey value from your ~/.gradle/gradle.properties).
+# Push a tag like v0.2.1 (it must match mod_version in gradle.properties).
+# Builds the signed jar, creates a draft GitHub release with the jar, its SHA-256 and build provenance,
+# and publishes the same jar to Modrinth and CurseForge.
+#
+# Repository secrets:   ZV_SIGNING_KEY (required), MODRINTH_TOKEN, CURSEFORGE_TOKEN
+# Repository variables: MODRINTH_PROJECT_ID, CURSEFORGE_PROJECT_ID
+# A store is skipped while its token or project id is not set.
+# The changelog is the section of CHANGELOG.md for this version.
 on:
   push:
     tags: ['v*']
@@ -15,6 +20,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-24.04
+    env:
+      PUBLISH_MODRINTH: ${{ secrets.MODRINTH_TOKEN != '' && vars.MODRINTH_PROJECT_ID != '' }}
+      PUBLISH_CURSEFORGE: ${{ secrets.CURSEFORGE_TOKEN != '' && vars.CURSEFORGE_PROJECT_ID != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: gradle/actions/wrapper-validation@v4
@@ -29,6 +37,13 @@ jobs:
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "Tag $GITHUB_REF_NAME does not match mod_version $version"; exit 1
           fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Changelog for this version
+        run: |
+          # the lines under "## <version>" up to the next "## "
+          awk -v v="## $VERSION" '$0 == v {found=1; next} /^## / {if (found) exit} found' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then echo "::warning::No CHANGELOG.md section for $VERSION"; echo "ZeroVisual $VERSION" > release-notes.md; fi
 
       - name: Build and sign
         env:
@@ -55,6 +70,43 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           draft: true
+          body_path: release-notes.md
           files: |
             ${{ env.JAR }}
             ${{ env.JAR }}.sha256
+
+      - name: Publish to Modrinth
+        if: env.PUBLISH_MODRINTH == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: ${{ env.JAR }}
+          name: ZeroVisual ${{ env.VERSION }}
+          version: ${{ env.VERSION }}
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: fabric
+          game-versions: 1.21.4
+          java: 21
+          dependencies: |
+            fabric-api(required){modrinth:P7dR8mSH}
+            modmenu(optional){modrinth:mOgUt4GM}
+
+      - name: Publish to CurseForge
+        if: env.PUBLISH_CURSEFORGE == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: ${{ env.JAR }}
+          name: ZeroVisual ${{ env.VERSION }}
+          version: ${{ env.VERSION }}
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: fabric
+          game-versions: 1.21.4
+          java: 21
+          dependencies: |
+            fabric-api(required){curseforge:306612}
+            modmenu(optional){curseforge:308702}

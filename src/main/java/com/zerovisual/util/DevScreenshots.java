@@ -335,6 +335,33 @@ public final class DevScreenshots {
 				timedShots.put(ticks + 8, "zv_items_fly2");
 			}
 			case 43 -> mc.options.hudHidden = false;
+			case 44 -> {
+				// Mini me close-up for banners: on a platform in the sky, right in front of the camera
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "execute at " + who + " run fill ~-4 150 ~-4 ~4 150 ~4 minecraft:barrier");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~ 0 40");
+				mc.options.hudHidden = true;
+				mc.options.setPerspective(Perspective.FIRST_PERSON);
+				var pet = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Pet.class);
+				pet.setEnabled(true);
+				pet.type.set("Mini me");
+				pet.armor.set("Diamond");
+			}
+			case 45 -> {
+				mc.player.setYaw(0);
+				mc.player.setPitch(40);
+				var pet = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Pet.class);
+				// 2 blocks south (in front, yaw 0), facing back north at the player
+				pet.placeAt(mc.player.getPos().add(0, 0, 2), 180);
+				timedShots.put(ticks + 70, "zv_mini_arms");
+				timedShots.put(ticks + 210, "zv_mini_tap");
+				timedShots.put(ticks + 330, "zv_mini_sit");
+			}
+			case 46, 47, 48, 49, 50, 51, 52, 53, 54, 55 -> {
+				// wait for the idle animations
+			}
+			case 56 -> mc.options.hudHidden = false;
 			default -> mc.scheduleStop();
 		}
 		step++;

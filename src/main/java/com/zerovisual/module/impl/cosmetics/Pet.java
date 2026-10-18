@@ -160,6 +160,15 @@ public class Pet extends Module {
 		sit += ((idleAnimation(System.currentTimeMillis())[0] == IDLE_SIT ? 1f : 0f) - sit) * 0.15f;
 	}
 
+	/** Dev screenshots: put the pet at a spot, standing (its idle animations start from now). */
+	public void placeAt(Vec3d spot, float facingYaw) {
+		pos = spot;
+		prevPos = spot;
+		yaw = prevYaw = facingYaw;
+		chasing = false;
+		idleSince = System.currentTimeMillis();
+	}
+
 	/**
 	 * Current idle animation of Mini me and its 0..1 strength (eased in and out) and local time in seconds:
 	 * after standing for a moment it cycles: swinging both arms, tapping a foot, sitting on the floor.
