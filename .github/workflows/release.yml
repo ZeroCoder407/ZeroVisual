@@ -1,8 +1,8 @@
 name: release
 
-# Push a tag like v0.2.1 (it must match mod_version in gradle.properties).
-# Builds the signed jar, creates a draft GitHub release with the jar, its SHA-256 and build provenance,
-# and publishes the same jar to Modrinth and CurseForge.
+# Push a tag like v0.2.1 (it must match mod_version in both 1.21.4/ and 26.3/gradle.properties).
+# Builds the signed jars for Minecraft 1.21.4 and 26.3, creates a draft GitHub release with both jars,
+# their SHA-256 and build provenance, and publishes each jar to Modrinth and CurseForge for its game version.
 #
 # Repository secrets:   ZV_SIGNING_KEY (required), MODRINTH_TOKEN, CURSEFORGE_TOKEN
 # Repository variables: MODRINTH_PROJECT_ID, CURSEFORGE_PROJECT_ID
@@ -26,17 +26,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: gradle/actions/wrapper-validation@v4
+      # 1.21.4 builds on Java 21, 26.3 on Java 25 (JAVA_HOME_21_X64 / JAVA_HOME_25_X64)
       - uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'microsoft'
+          java-version: |
+            21
+            25
+          distribution: 'temurin'
 
       - name: Check the tag matches the mod version
         run: |
-          version=$(grep '^mod_version' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match mod_version $version"; exit 1
-          fi
+          for p in 1.21.4 26.3; do
+            version=$(grep '^mod_version' $p/gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+            if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+              echo "Tag $GITHUB_REF_NAME does not match mod_version $version in $p"; exit 1
+            fi
+          done
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Changelog for this version
@@ -49,41 +54,48 @@ jobs:
         env:
           ZV_SIGNING_KEY: ${{ secrets.ZV_SIGNING_KEY }}
         run: |
-          chmod +x ./gradlew
           if [ -z "$ZV_SIGNING_KEY" ]; then echo "::error::The ZV_SIGNING_KEY secret is empty or missing"; exit 1; fi
           echo "::notice::Signing key length: ${#ZV_SIGNING_KEY}"
-          if ! ./gradlew build > gradle.log 2>&1; then
-            echo "::error::Gradle build failed: $(grep -E 'Exception|What went wrong' -A3 gradle.log | head -c 900 | tr '\n' ' ')"
-            exit 1
-          fi
-          grep -E 'Signed|unsigned' gradle.log || true
-          jar=$(ls build/libs/zerovisual-*.jar | grep -v sources)
-          # no pipe into grep -q: with pipefail the early exit of grep fails the whole check
-          unzip -l "$jar" META-INF/zerovisual.sig > /dev/null || { echo "The jar is not signed: is ZV_SIGNING_KEY set?"; exit 1; }
-          sha256sum "$jar" | sed 's|build/libs/||' > "$jar.sha256"
-          echo "JAR=$jar" >> "$GITHUB_ENV"
+          mkdir -p dist
+          build() {
+            local project=$1 java_home=$2
+            if ! (cd "$project" && chmod +x ./gradlew && JAVA_HOME="$java_home" ./gradlew build > gradle.log 2>&1); then
+              echo "::error::Gradle build of $project failed: $(grep -E 'Exception|What went wrong' -A3 $project/gradle.log | head -c 900 | tr '\n' ' ')"
+              exit 1
+            fi
+            grep -E 'Signed|unsigned' "$project/gradle.log" || true
+            local jar=$(ls $project/build/libs/zerovisual-*.jar | grep -v sources)
+            # no pipe into grep -q: with pipefail the early exit of grep fails the whole check
+            unzip -l "$jar" META-INF/zerovisual.sig > /dev/null || { echo "$jar is not signed: is ZV_SIGNING_KEY set?"; exit 1; }
+            cp "$jar" dist/
+          }
+          build 1.21.4 "$JAVA_HOME_21_X64"
+          build 26.3 "$JAVA_HOME_25_X64"
+          (cd dist && sha256sum *.jar > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          echo "JAR_1214=$(ls dist/*+1.21.4.jar)" >> "$GITHUB_ENV"
+          echo "JAR_263=$(ls dist/*+26.3.jar)" >> "$GITHUB_ENV"
 
       - uses: actions/attest-build-provenance@v2
         with:
-          subject-path: ${{ env.JAR }}
+          subject-path: dist/*.jar
 
       - uses: softprops/action-gh-release@v2
         with:
           draft: true
           body_path: release-notes.md
           files: |
-            ${{ env.JAR }}
-            ${{ env.JAR }}.sha256
+            dist/*.jar
+            dist/SHA256SUMS.txt
 
-      - name: Publish to Modrinth
+      - name: Publish 1.21.4 to Modrinth
         if: env.PUBLISH_MODRINTH == 'true'
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files: ${{ env.JAR }}
-          name: ZeroVisual ${{ env.VERSION }}
-          version: ${{ env.VERSION }}
+          files: ${{ env.JAR_1214 }}
+          name: ZeroVisual ${{ env.VERSION }} (1.21.4)
+          version: ${{ env.VERSION }}+1.21.4
           version-type: release
           changelog-file: release-notes.md
           loaders: fabric
@@ -93,20 +105,56 @@ jobs:
             fabric-api(required){modrinth:P7dR8mSH}
             modmenu(optional){modrinth:mOgUt4GM}
 
-      - name: Publish to CurseForge
+      - name: Publish 26.3 to Modrinth
+        if: env.PUBLISH_MODRINTH == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: ${{ env.JAR_263 }}
+          name: ZeroVisual ${{ env.VERSION }} (26.3)
+          version: ${{ env.VERSION }}+26.3
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: fabric
+          game-versions: 26.3
+          java: 25
+          dependencies: |
+            fabric-api(required){modrinth:P7dR8mSH}
+            modmenu(optional){modrinth:mOgUt4GM}
+
+      - name: Publish 1.21.4 to CurseForge
         if: env.PUBLISH_CURSEFORGE == 'true'
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
-          files: ${{ env.JAR }}
-          name: ZeroVisual ${{ env.VERSION }}
-          version: ${{ env.VERSION }}
+          files: ${{ env.JAR_1214 }}
+          name: ZeroVisual ${{ env.VERSION }} (1.21.4)
+          version: ${{ env.VERSION }}+1.21.4
           version-type: release
           changelog-file: release-notes.md
           loaders: fabric
           game-versions: 1.21.4
           java: 21
+          dependencies: |
+            fabric-api(required){curseforge:306612}
+            modmenu(optional){curseforge:308702}
+
+      - name: Publish 26.3 to CurseForge
+        if: env.PUBLISH_CURSEFORGE == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: ${{ env.JAR_263 }}
+          name: ZeroVisual ${{ env.VERSION }} (26.3)
+          version: ${{ env.VERSION }}+26.3
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: fabric
+          game-versions: 26.3
+          java: 25
           dependencies: |
             fabric-api(required){curseforge:306612}
             modmenu(optional){curseforge:308702}

@@ -26,3 +26,12 @@ Thumbs.db
 hs_err_*.log
 replay_*.log
 *.hprof
+
+# Logs and leftovers of local work
+*.log
+__pycache__/
+26.3/port-pending/
+
+# Promo videos and the session notes stay local
+docs/promo/
+HANDOFF.md

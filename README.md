@@ -2,7 +2,7 @@
 
 # ZeroVisual
 
-Бесплатный open-source **легитный** визуальный клиент для Minecraft **1.21.4** (Fabric).
+Бесплатный open-source **легитный** визуальный клиент для Minecraft **1.21.4** и **26.3** (Fabric).
 Для тех, кто не может или не хочет платить за платные клиенты.
 
 ## Принципы
@@ -18,21 +18,22 @@
 
 ## Установка
 
-1. Установите [Fabric Loader](https://fabricmc.net/use/) для 1.21.4.
+1. Установите [Fabric Loader](https://fabricmc.net/use/) для своей версии игры (1.21.4 или 26.3).
 2. Положите в папку `mods`:
-   - `zerovisual-<версия>.jar`
+   - `zerovisual-<версия>+<версия игры>.jar` — для 1.21.4 или для 26.3
    - [Fabric API](https://modrinth.com/mod/fabric-api)
    - [Mod Menu](https://modrinth.com/mod/modmenu) — рекомендуется
 
 ## Сборка
 
-Требуется JDK 21.
+Два Gradle-проекта: `1.21.4/` (JDK 21) и `26.3/` (JDK 25).
 
 ```bash
+cd 1.21.4   # или cd 26.3
 ./gradlew build
 ```
 
-Готовый `.jar` — в `build/libs/`. Запуск клиента для разработки: `./gradlew runClient`.
+Готовый `.jar` — в `build/libs/` нужной папки. Запуск клиента для разработки: `./gradlew runClient`.
 
 ## Лицензия
 

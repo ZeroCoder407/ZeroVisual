@@ -1,0 +1,46 @@
+package com.zerovisual.module.impl.hud;
+
+import com.zerovisual.module.Category;
+import com.zerovisual.module.Module;
+import com.zerovisual.setting.BooleanSetting;
+import com.zerovisual.setting.NumberSetting;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+
+/** Chat look: background opacity, slide-in animation, timestamps. Applied in ChatHudMixin. */
+public class ChatTweaks extends Module {
+	private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
+	private static final long ANIMATION_MS = 220;
+
+	public final NumberSetting background = add(new NumberSetting("Background", 0.5, 0, 1, 0.05));
+	public final BooleanSetting animation = add(new BooleanSetting("Animation", true));
+	public final BooleanSetting timestamps = add(new BooleanSetting("Timestamps", true));
+
+	/** When each chat line was first drawn, for the slide-in animation. */
+	private final Map<Object, Long> firstSeen = Collections.synchronizedMap(new WeakHashMap<>());
+
+	public ChatTweaks() {
+		super("ChatTweaks", "Chat background opacity, animation and message time", Category.HUD);
+	}
+
+	public Component addTimestamp(Component message) {
+		MutableComponent time = Component.literal("[" + LocalTime.now().format(TIME) + "] ").withStyle(ChatFormatting.DARK_GRAY);
+		return time.append(message);
+	}
+
+	/** Horizontal offset of a chat line: slides in from the left when it appears. */
+	public float lineOffset(Object line) {
+		if (!animation.get()) return 0;
+		long now = System.currentTimeMillis();
+		long first = firstSeen.computeIfAbsent(line, l -> now);
+		float t = Math.min(1f, (now - first) / (float) ANIMATION_MS);
+		float eased = 1f - (1f - t) * (1f - t) * (1f - t);
+		return (1f - eased) * -40f;
+	}
+}

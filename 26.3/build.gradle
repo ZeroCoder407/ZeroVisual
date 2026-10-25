@@ -1,0 +1,127 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+// 0.2.1+26.3: the same release for another Minecraft version
+version = "${project.mod_version}+${project.minecraft_version}"
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Mod Menu
+	maven {
+		name = 'TerraformersMC'
+		url = 'https://maven.terraformersmc.com/releases/'
+	}
+}
+
+dependencies {
+	// 26.x is not obfuscated: official Mojang names, no mappings and no remapping
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API (required)
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// Mod Menu (optional integration; present in dev runtime)
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+	def version = project.mod_version
+	inputs.property 'version', version
+	filteringCharset = 'UTF-8'
+
+	filesMatching('fabric.mod.json') {
+		expand 'version': version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = 'UTF-8'
+	it.options.release = 25
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+	withSourcesJar()
+}
+
+jar {
+	from('../LICENSE') {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+tasks.register("signModJar") {
+	group = "zerovisual"
+	description = "Signs the mod jar with the ZeroVisual release key"
+	dependsOn jar
+	def modJar = jar.archiveFile
+	def key = project.findProperty("zvSigningKey") ?: System.getenv("ZV_SIGNING_KEY")
+	inputs.file(modJar)
+	doLast {
+		def jarFile = modJar.get().asFile
+		if (!key) {
+			logger.warn("No signing key: ${jarFile.name} is unsigned (Unofficial build)")
+			return
+		}
+		def sigEntry = "META-INF/zerovisual.sig"
+		// same digest as BuildVerifier: per file name, zero byte, sha256 of content, sorted by name
+		def total = java.security.MessageDigest.getInstance("SHA-256")
+		new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+			zip.entries().toList()
+				.findAll { !it.directory && it.name != sigEntry }
+				.sort { a, b -> a.name <=> b.name }
+				.each { entry ->
+					total.update(entry.name.getBytes("UTF-8"))
+					total.update((byte) 0)
+					zip.getInputStream(entry).withCloseable { total.update(java.security.MessageDigest.getInstance("SHA-256").digest(it.readAllBytes())) }
+				}
+		}
+		def privateKey = java.security.KeyFactory.getInstance("Ed25519")
+			.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(Base64.decoder.decode(
+				// also accept the whole "zvSigningKey=..." line pasted as the secret
+				key.toString().trim().replaceFirst(/^zvSigningKey\s*=\s*/, ""))))
+		def signer = java.security.Signature.getInstance("Ed25519")
+		signer.initSign(privateKey)
+		signer.update(total.digest())
+		def signature = Base64.encoder.encodeToString(signer.sign())
+		java.nio.file.FileSystems.newFileSystem(jarFile.toPath(), (ClassLoader) null).withCloseable { fs ->
+			def target = fs.getPath(sigEntry)
+			java.nio.file.Files.createDirectories(target.parent)
+			java.nio.file.Files.writeString(target, signature)
+		}
+		logger.lifecycle("Signed ${jarFile.name}")
+	}
+}
+jar.finalizedBy signModJar
+
+// Builds the mod and copies it into a launcher instance's mods folder.
+// Default: Lexplosion instance "zerovisual test 26.3". Override: -PdeployDir="C:/path/to/mods"
+tasks.register('deployToLauncher') {
+	group = 'zerovisual'
+	description = 'Builds the mod and copies the jar into the launcher mods folder'
+	dependsOn jar, signModJar
+
+	def modsDir = file(project.findProperty('deployDir')
+		?: "${System.getenv('APPDATA')}/.lexplosion/instances/zerovisual test 26.3/mods")
+	def modJar = jar.archiveFile
+	def baseName = project.base.archivesName
+
+	doLast {
+		modsDir.mkdirs()
+		modsDir.listFiles({ f -> f.name ==~ /${baseName.get()}-.*\.jar/ } as FileFilter)?.each { it.delete() }
+		copy {
+			from modJar
+			into modsDir
+		}
+		logger.lifecycle("Deployed ${modJar.get().asFile.name} -> ${modsDir}")
+	}
+}

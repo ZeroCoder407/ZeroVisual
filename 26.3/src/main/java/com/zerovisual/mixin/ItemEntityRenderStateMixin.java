@@ -1,0 +1,41 @@
+package com.zerovisual.mixin;
+
+import com.zerovisual.util.ItemPhysicsState;
+import net.minecraft.client.renderer.entity.state.ItemEntityRenderState;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+
+@Mixin(ItemEntityRenderState.class)
+public class ItemEntityRenderStateMixin implements ItemPhysicsState {
+	@Unique
+	private boolean zerovisual$onGround;
+
+	@Override
+	public boolean zerovisual$isOnGround() {
+		return zerovisual$onGround;
+	}
+
+	@Override
+	public void zerovisual$setOnGround(boolean onGround) {
+		zerovisual$onGround = onGround;
+	}
+
+	@Unique
+	private float zerovisual$velocityX, zerovisual$velocityZ;
+
+	@Override
+	public float zerovisual$velocityX() {
+		return zerovisual$velocityX;
+	}
+
+	@Override
+	public float zerovisual$velocityZ() {
+		return zerovisual$velocityZ;
+	}
+
+	@Override
+	public void zerovisual$setVelocity(float x, float z) {
+		zerovisual$velocityX = x;
+		zerovisual$velocityZ = z;
+	}
+}
