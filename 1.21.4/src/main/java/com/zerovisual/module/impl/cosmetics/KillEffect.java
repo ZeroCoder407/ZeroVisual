@@ -41,6 +41,8 @@ import java.util.Set;
  */
 public class KillEffect extends Module {
 	private static final long DURATION = 1200;
+	private static final float SOUL_MILLIS = 1900;
+	private static final int SOUL_SPARKS = 16;
 	private static int nextClientId = -1_000_000;
 
 	// black hole timeline, seconds
@@ -49,10 +51,11 @@ public class KillEffect extends Module {
 	private static final float COLLAPSE_END = 2.85f;
 	private static final float HOLE_END = 3.45f;
 
-	public final ModeSetting style = add(new ModeSetting("Style", "Black hole", "Black hole", "Shockwave", "Lightning"));
+	public final ModeSetting style = add(new ModeSetting("Style", "Black hole", "Black hole", "Shockwave", "Lightning", "Soul"));
 	public final BooleanSetting sound = add(new BooleanSetting("Sound", true));
 
 	private final List<Wave> waves = new ArrayList<>();
+	private final List<Wave> souls = new ArrayList<>();
 	private final List<Hole> holes = new ArrayList<>();
 	/** Dying entities hidden while their copy is pulled into a black hole (EntityRenderDispatcherMixin). */
 	private final Set<Integer> hidden = Collections.synchronizedSet(new HashSet<>());
@@ -65,6 +68,7 @@ public class KillEffect extends Module {
 	@Override
 	protected void onDisable() {
 		waves.clear();
+		souls.clear();
 		holes.clear();
 		hidden.clear();
 		watched = null;
@@ -99,6 +103,8 @@ public class KillEffect extends Module {
 			}
 		} else if (style.is("Black hole")) {
 			startHole(entity);
+		} else if (style.is("Soul")) {
+			souls.add(new Wave(pos, System.currentTimeMillis()));
 		} else {
 			waves.add(new Wave(pos, System.currentTimeMillis()));
 			if (sound.get()) mc.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 0.6f);
@@ -127,6 +133,7 @@ public class KillEffect extends Module {
 	}
 
 	public void render(WorldRenderContext context) {
+		if (!souls.isEmpty()) renderSouls(context);
 		if (!holes.isEmpty()) renderHoles(context);
 		if (waves.isEmpty()) return;
 		Vec3d cam = context.camera().getPos();
@@ -268,6 +275,50 @@ public class KillEffect extends Module {
 
 	private static float easeIn(float t) {
 		return t * t * t;
+	}
+
+	/** The soul leaves: a beam of light from the body, sparks spiralling up along it and a ring at the feet. */
+	private void renderSouls(WorldRenderContext context) {
+		Vec3d cam = context.camera().getPos();
+		long now = System.currentTimeMillis();
+		int accent = Theme.accent(), light = Theme.accentLight();
+		Iterator<Wave> it = souls.iterator();
+		while (it.hasNext()) {
+			Wave soul = it.next();
+			float t = (now - soul.start) / SOUL_MILLIS;
+			if (t >= 1) {
+				it.remove();
+				continue;
+			}
+			float fade = t < 0.65f ? 1f : 1f - (t - 0.65f) / 0.35f;
+			float x = (float) (soul.pos.x - cam.x), y = (float) (soul.pos.y - cam.y), z = (float) (soul.pos.z - cam.z);
+			// the beam always turns its wide side to the camera
+			float yaw = (float) Math.atan2(x, z);
+			float width = 0.8f * (1f - t * 0.6f), height = 3f + t * 7f;
+			Matrix4f beam = new Matrix4f().translate(x, y, z).rotateY(yaw);
+			int core = ColorUtil.withAlpha(light, 0.6f * fade), edge = ColorUtil.withAlpha(accent, 0f);
+			WorldRender.quadsAdditive(q -> {
+				q.vertex(beam, -width, 0, 0, edge);
+				q.vertex(beam, 0, 0, 0, core);
+				q.vertex(beam, 0, height, 0, edge);
+				q.vertex(beam, -width * 0.3f, height, 0, edge);
+				q.vertex(beam, 0, 0, 0, core);
+				q.vertex(beam, width, 0, 0, edge);
+				q.vertex(beam, width * 0.3f, height, 0, edge);
+				q.vertex(beam, 0, height, 0, edge);
+			});
+			WorldRender.ring(WorldRender.flat(soul.pos.add(0, 0.05, 0), cam), 0.35f + t * 1.4f, 0.05f,
+				ColorUtil.withAlpha(accent, fade), ColorUtil.withAlpha(light, fade), 0.14f);
+			for (int i = 0; i < SOUL_SPARKS; i++) {
+				float local = (t * 1.5f - i * 0.03f);
+				if (local <= 0 || local >= 1) continue;
+				double angle = i * 2.4 + local * 9;
+				float r = 0.62f * (1f - local * 0.7f);
+				Vec3d at = soul.pos.add(Math.cos(angle) * r, 0.2 + local * (2.4 + i * 0.12), Math.sin(angle) * r);
+				WorldRender.glowDot(WorldRender.billboard(at, cam, context.camera().getRotation()), 0.055f * (1f - local * 0.6f),
+					ColorUtil.withAlpha(i % 2 == 0 ? light : accent, (1f - local) * fade));
+			}
+		}
 	}
 
 	private record Wave(Vec3d pos, long start) {

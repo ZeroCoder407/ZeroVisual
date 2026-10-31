@@ -469,6 +469,380 @@ public final class DevScreenshots {
 			}
 			case 82 -> {
 			}
+			case 83 -> {
+				// promo shot for the banner: two husks, one shield ready, one broken, no HUD
+				mc.gui.setScreen(null);
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				hideGui(mc, true);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.ShieldColor.class).setEnabled(true);
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "weather clear");
+				mc.player.setXRot(8);
+			}
+			case 84 -> {
+				// summoned a step later: the poof of the killed mobs is gone by the time of the shot
+				Vec3 look = mc.player.getLookAngle().multiply(1, 0, 1).normalize();
+				Vec3 right = new Vec3(-look.z, 0, look.x);
+				for (int side = -1; side <= 1; side += 2) {
+					Vec3 spot = mc.player.position().add(look.scale(2.6)).add(right.scale(side * 0.75));
+					runCommand(mc, String.format(java.util.Locale.ROOT, "summon minecraft:husk %.2f %.2f %.2f {NoAI:1b,Silent:1b,equipment:{mainhand:{id:\"minecraft:shield\",count:1}},Rotation:[%.1ff,0f]}",
+						spot.x, spot.y, spot.z, mc.player.getYRot() + 180));
+				}
+			}
+			case 85, 86 -> {
+			}
+			case 87 -> {
+				Vec3 look = mc.player.getLookAngle().multiply(1, 0, 1).normalize();
+				Vec3 right = new Vec3(-look.z, 0, look.x);
+				var shield = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.ShieldColor.class);
+				mc.level.getEntitiesOfClass(net.minecraft.world.entity.monster.zombie.Husk.class, mc.player.getBoundingBox().inflate(8)).stream()
+					.filter(h -> h.position().subtract(mc.player.position()).dot(right) > 0)
+					.forEach(shield::onShieldBreak);
+				timedShots.put(ticks + 5, "zv_promo_shield");
+			}
+			case 88 -> hideGui(mc, false);
+			case 89 -> {
+				// emotes: every emote from the front, on open ground without the HUD
+				mc.gui.setScreen(null);
+				hideGui(mc, true);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "execute at " + who + " run fill ~-4 150 ~-4 ~4 150 ~4 minecraft:smooth_stone");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(0);
+				for (var m : ZeroVisualClient.get().modules().getModules()) {
+					String n = m.getName();
+					if (n.equals("HitParticles") || n.equals("KillEffect") || n.equals("Nametags") || n.equals("TotemPop") || n.equals("JumpCircles")) m.setEnabled(false);
+				}
+			}
+			case 90, 91 -> {
+				// the poof of the killed mobs fades
+			}
+			case 92, 93, 94, 95, 96, 97, 98, 99, 100, 101 -> {
+				var emote = com.zerovisual.emote.Emotes.ALL.get(step - 92);
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), emote);
+				timedShots.put(ticks + 14, "zv_emote_" + emote.id());
+			}
+			case 102 -> {
+				com.zerovisual.emote.EmoteManager.clear();
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				hideGui(mc, false);
+			}
+			case 103 -> {
+				com.zerovisual.gui.EmoteWheelScreen.keepOpen = true;
+				mc.gui.setScreen(new com.zerovisual.gui.EmoteWheelScreen(ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.EmoteMenu.class)));
+				timedShots.put(ticks + 15, "zv_emote_wheel");
+			}
+			case 104 -> {
+				com.zerovisual.gui.EmoteWheelScreen.keepOpen = false;
+				mc.gui.setScreen(null);
+			}
+			case 105 -> {
+				// new effects of 0.4.0: a clean platform, the sky on, the HUD only where it matters
+				mc.gui.setScreen(null);
+				String who = mc.player.getName().getString();
+				var m = ZeroVisualClient.get().modules();
+				m.get(com.zerovisual.module.impl.visuals.TargetEsp.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.visuals.JumpCircles.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.cosmetics.KillEffect.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.cosmetics.Wings.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.visuals.Crosshair.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.visuals.CustomSky.class).setEnabled(false);
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "execute at " + who + " run fill ~-10 150 ~-10 ~10 150 ~10 minecraft:grass_block");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(30);
+			}
+			case 106 -> {
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.mode.set("Glyphs");
+				jump.radius.set(2.0);
+				jump.duration.set(2.0);
+				jump.spawn(mc.player.position());
+				timedShots.put(ticks + 22, "zv_fx_glyphs");
+			}
+			case 107 -> {
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.mode.set("Block wave");
+				jump.spawn(mc.player.position());
+				timedShots.put(ticks + 14, "zv_fx_wave");
+			}
+			case 108 -> {
+				mc.player.setXRot(10);
+				var ahead = mc.player.getLookAngle().multiply(1, 0, 1).normalize();
+				var at = mc.player.position().add(ahead.scale(4.5)).add(-ahead.z * 2.2, 0, ahead.x * 2.2);
+				runCommand(mc, String.format(java.util.Locale.ROOT, "summon minecraft:husk %.2f %.2f %.2f {NoAI:1b,Silent:1b}", at.x, at.y, at.z));
+			}
+			case 109 -> {
+				var esp = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.TargetEsp.class);
+				esp.style.set("Crystals");
+				esp.keepTime.set(10.0);
+				mc.level.getEntitiesOfClass(net.minecraft.world.entity.monster.zombie.Husk.class, mc.player.getBoundingBox().inflate(10)).stream().findFirst().ifPresent(TargetTracker::onAttack);
+				timedShots.put(ticks + 15, "zv_fx_crystals");
+			}
+			case 110 -> {
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.TargetEsp.class).style.set("Pulse");
+				timedShots.put(ticks + 12, "zv_fx_pulse");
+			}
+			case 111 -> {
+				runCommand(mc, "damage @e[type=husk,limit=1] 1");
+				timedShots.put(ticks + 4, "zv_fx_pulse_hit");
+			}
+			case 112 -> {
+				var kill = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.KillEffect.class);
+				kill.style.set("Soul");
+				mc.level.getEntitiesOfClass(net.minecraft.world.entity.monster.zombie.Husk.class, mc.player.getBoundingBox().inflate(10)).stream().findFirst().ifPresent(kill::trigger);
+				timedShots.put(ticks + 22, "zv_fx_soul");
+			}
+			case 113 -> {
+				var wings = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Wings.class);
+				wings.style.set("Dragon");
+				hideGui(mc, true);
+				timedShots.put(ticks + 12, "zv_fx_dragon");
+			}
+			case 114 -> {
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				mc.player.setXRot(-28);
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.setEnabled(true);
+				sky.mode.set("Rifts");
+				timedShots.put(ticks + 20, "zv_fx_rifts");
+			}
+			case 115, 116, 117, 118, 119 -> {
+				hideGui(mc, false);
+				mc.player.setXRot(0);
+				var cross = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Crosshair.class);
+				String style = new String[]{"T", "Square", "Brackets", "Chevron", "Diamond"}[step - 115];
+				cross.style.set(style);
+				cross.size.set(6.0);
+				timedShots.put(ticks + 6, "zv_fx_cross_" + style.toLowerCase());
+			}
+			case 120, 121, 122, 123 -> {
+				var anim = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Animations.class);
+				anim.setEnabled(true);
+				anim.mode.set(new String[]{"Stab", "Slam", "Backhand", "Twirl"}[step - 120]);
+				anim.swingSpeed.set(0.4);
+				mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+				timedShots.put(ticks + 5, "zv_fx_anim_" + (step - 120));
+			}
+			case 124 -> {
+				hideGui(mc, true);
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				mc.player.setXRot(-34);
+				timedShots.put(ticks + 6, "zv_fx_rifts_a");
+			}
+			case 125 -> {
+				mc.player.setYRot(mc.player.getYRot() + 14);
+				timedShots.put(ticks + 6, "zv_fx_rifts_b");
+			}
+			case 126 -> {
+				// the dances against their reference videos: eight moments of each, from the front
+				mc.gui.setScreen(null);
+				hideGui(mc, true);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "execute at " + who + " run fill ~-4 150 ~-4 ~4 150 ~4 minecraft:smooth_stone");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class).setEnabled(false);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Wings.class).setEnabled(false);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.EmoteMenu.class).setEnabled(false);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(0);
+				for (var m : ZeroVisualClient.get().modules().getModules()) {
+					String n = m.getName();
+					if (n.equals("HitParticles") || n.equals("KillEffect") || n.equals("Nametags") || n.equals("TotemPop") || n.equals("JumpCircles")) m.setEnabled(false);
+				}
+			}
+			case 127, 128 -> {
+			}
+			case 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
+				145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160 -> {
+				int n = step - 129, k = n % 8;
+				String id = new String[]{"rat", "rampage", "funk", "squat"}[n / 8];
+				var emote = com.zerovisual.emote.Emotes.byId(id);
+				mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot();
+				if (k == 0) com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), emote);
+				com.zerovisual.emote.EmoteManager.frozenAt = emote.duration() * (1 + k / 8f);
+				timedShots.put(ticks + 8, "zv_dance_" + id + "_" + k);
+			}
+			case 161 -> {
+				// the sit pose from the side and the cape from behind
+				mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot() + 90;
+				mc.player.setYRot(mc.player.getYRot() + 90);
+				var sit = com.zerovisual.emote.Emotes.byId("sit");
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), sit);
+				com.zerovisual.emote.EmoteManager.frozenAt = 1f;
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setYRot(mc.player.getYRot() + 90);
+				timedShots.put(ticks + 8, "zv_dance_sit_side");
+			}
+			case 162 -> {
+				var funk = com.zerovisual.emote.Emotes.byId("rampage");
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), funk);
+				com.zerovisual.emote.EmoteManager.frozenAt = 1.1f;
+				mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot();
+				timedShots.put(ticks + 8, "zv_dance_cape");
+			}
+			case 163 -> {
+				com.zerovisual.emote.EmoteManager.frozenAt = -1;
+				hideGui(mc, false);
+			}
+			case 164 -> {
+				// the block wave up close, slowed down
+				mc.gui.setScreen(null);
+				hideGui(mc, true);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "execute at " + who + " run fill ~-10 150 ~-10 ~10 150 ~10 minecraft:grass_block");
+				runCommand(mc, "execute at " + who + " run fill ~3 151 ~-10 ~10 151 ~10 minecraft:grass_block");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(18);
+				for (var m : ZeroVisualClient.get().modules().getModules()) {
+					String n = m.getName();
+					if (n.equals("HitParticles") || n.equals("KillEffect") || n.equals("Nametags") || n.equals("TotemPop") || n.equals("Wings") || n.equals("Pet")) m.setEnabled(false);
+				}
+			}
+			case 165, 166 -> {
+			}
+			case 167 -> {
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.setEnabled(true);
+				jump.mode.set("Block wave");
+				jump.radius.set(1.2);
+				jump.duration.set(3.0);
+				jump.spawn(mc.player.position());
+				for (int k = 0; k < 6; k++) timedShots.put(ticks + 4 + k * 8, "zv_wave_" + k);
+			}
+			case 168, 169 -> {
+			}
+			case 170 -> {
+				// Mini me idles from the front, and rift colors
+				var pet = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Pet.class);
+				pet.setEnabled(true);
+				pet.type.set("Mini me");
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				mc.player.setXRot(30);
+				var ahead = mc.player.getLookAngle().multiply(1, 0, 1).normalize().scale(2);
+				pet.placeAt(mc.player.position().add(ahead), mc.player.getYRot() + 180);
+				for (int k = 0; k < 4; k++) timedShots.put(ticks + 60 + k * 2, "zv_mini_arms" + k);
+				for (int k = 0; k < 4; k++) timedShots.put(ticks + 170 + k * 2, "zv_mini_tap" + k);
+			}
+			case 171, 172, 173, 174, 175, 176 -> {
+			}
+			case 177 -> {
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.setEnabled(true);
+				sky.mode.set("Rifts");
+				mc.player.setXRot(-34);
+				timedShots.put(ticks + 8, "zv_rift_default");
+			}
+			case 178 -> {
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.riftColor1.set(0xFFF97316);
+				sky.riftColor2.set(0xFFFACC15);
+				sky.riftColor3.set(0xFF22C55E);
+				timedShots.put(ticks + 8, "zv_rift_custom");
+			}
+			case 180 -> {
+				// Mini me during a long emote: the moment it used to sit down, and its idles after the emote
+				var modules = ZeroVisualClient.get().modules();
+				modules.get(com.zerovisual.module.impl.visuals.CustomSky.class).setEnabled(false);
+				modules.get(com.zerovisual.module.impl.cosmetics.Wings.class).setEnabled(false);
+				var pet = modules.get(com.zerovisual.module.impl.cosmetics.Pet.class);
+				pet.setEnabled(true);
+				pet.type.set("Mini me");
+				mc.gui.setScreen(null);
+				hideGui(mc, true);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(22);
+				var ahead = mc.player.getLookAngle().multiply(1, 0, 1).normalize().scale(1.6);
+				pet.placeAt(mc.player.position().add(ahead), mc.player.getYRot() + 180);
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("rampage"));
+				timedShots.put(ticks + 320, "zv_pet_emote");
+			}
+			case 181, 182, 183, 184, 185, 186, 187, 188, 189, 190 -> {
+			}
+			case 191 -> {
+				com.zerovisual.emote.EmoteManager.stop(mc.player.getUUID());
+				timedShots.put(ticks + 100, "zv_pet_after");
+			}
+			case 192, 193, 194, 195 -> {
+			}
+			case 196 -> {
+				// hat and halo on the head during emotes
+				hideGui(mc, true);
+				for (var m : ZeroVisualClient.get().modules().getModules()) if (m.getName().equals("Nametags")) m.setEnabled(false);
+				var modules = ZeroVisualClient.get().modules();
+				modules.get(com.zerovisual.module.impl.visuals.ChinaHat.class).setEnabled(true);
+				modules.get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(true);
+				modules.get(com.zerovisual.module.impl.cosmetics.Pet.class).setEnabled(false);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(12);
+				mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot();
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("lie"));
+				com.zerovisual.emote.EmoteManager.frozenAt = 1f;
+				timedShots.put(ticks + 8, "zv_hat_lie");
+			}
+			case 197 -> {
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("sit"));
+				timedShots.put(ticks + 8, "zv_hat_sit");
+			}
+			case 198 -> {
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("rampage"));
+				com.zerovisual.emote.EmoteManager.frozenAt = 3.5f;
+				timedShots.put(ticks + 8, "zv_hat_dance");
+			}
+			case 199 -> {
+				com.zerovisual.emote.EmoteManager.clear();
+				com.zerovisual.emote.EmoteManager.frozenAt = -1;
+				timedShots.put(ticks + 8, "zv_hat_rest");
+			}
+			case 200 -> {
+				// wings on the back during emotes, seen from behind
+				hideGui(mc, true);
+				var wings = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Wings.class);
+				wings.setEnabled(true);
+				wings.style.set("Dragon");
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.ChinaHat.class).setEnabled(false);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(false);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(16);
+				mc.player.setYRot(mc.player.getYRot() + 40);
+				mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot() - 40;
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("sit"));
+				com.zerovisual.emote.EmoteManager.frozenAt = 1f;
+				timedShots.put(ticks + 8, "zv_wings_sit");
+			}
+			case 201 -> {
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("lie"));
+				timedShots.put(ticks + 8, "zv_wings_lie");
+			}
+			case 202 -> {
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("rampage"));
+				com.zerovisual.emote.EmoteManager.frozenAt = 3.5f;
+				timedShots.put(ticks + 8, "zv_wings_dance");
+			}
+			case 203 -> {
+				com.zerovisual.emote.EmoteManager.clear();
+				com.zerovisual.emote.EmoteManager.frozenAt = -1;
+				timedShots.put(ticks + 8, "zv_wings_rest");
+			}
+			case 204 -> hideGui(mc, false);
+			case 179 -> {
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.riftColor1.set(0xFF8B5CF6);
+				sky.riftColor2.set(0xFF22D3EE);
+				sky.riftColor3.set(0xFFFF4D8D);
+				hideGui(mc, false);
+			}
 			default -> mc.stop();
 		}
 		step++;

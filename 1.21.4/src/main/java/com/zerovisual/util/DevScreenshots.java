@@ -447,6 +447,144 @@ public final class DevScreenshots {
 			}
 			case 80 -> {
 			}
+			case 81 -> {
+				// emotes: every emote from the front, on open ground without the HUD
+				mc.setScreen(null);
+				mc.options.hudHidden = true;
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "item replace entity " + who + " weapon.offhand with minecraft:shield");
+				runCommand(mc, "execute at " + who + " run fill ~-4 150 ~-4 ~4 150 ~4 minecraft:smooth_stone");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				mc.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
+				mc.player.setPitch(0);
+				for (var m : ZeroVisualClient.get().modules().getModules()) {
+					String n = m.getName();
+					if (n.equals("HitParticles") || n.equals("KillEffect") || n.equals("Nametags") || n.equals("TotemPop") || n.equals("JumpCircles")) m.setEnabled(false);
+				}
+			}
+			case 82, 83 -> {
+				// the poof of the killed mobs fades
+			}
+			case 84, 85, 86, 87, 88, 89, 90, 91, 92, 93 -> {
+				var emote = com.zerovisual.emote.Emotes.ALL.get(step - 84);
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUuid(), emote);
+				timedShots.put(ticks + 14, "zv_emote_" + emote.id());
+			}
+			case 94 -> {
+				com.zerovisual.emote.EmoteManager.clear();
+				mc.options.setPerspective(Perspective.FIRST_PERSON);
+				mc.options.hudHidden = false;
+				com.zerovisual.gui.EmoteWheelScreen.keepOpen = true;
+				mc.setScreen(new com.zerovisual.gui.EmoteWheelScreen(ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.EmoteMenu.class)));
+				timedShots.put(ticks + 15, "zv_emote_wheel");
+			}
+			case 95 -> {
+				com.zerovisual.gui.EmoteWheelScreen.keepOpen = false;
+				mc.setScreen(null);
+			}
+			case 96 -> {
+				// new effects of 0.4.0: a clean platform, the sky on, the HUD only where it matters
+				mc.setScreen(null);
+				String who = mc.player.getName().getString();
+				var m = ZeroVisualClient.get().modules();
+				m.get(com.zerovisual.module.impl.visuals.TargetEsp.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.visuals.JumpCircles.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.cosmetics.KillEffect.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.cosmetics.Wings.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.visuals.Crosshair.class).setEnabled(true);
+				m.get(com.zerovisual.module.impl.visuals.CustomSky.class).setEnabled(false);
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "execute at " + who + " run fill ~-10 150 ~-10 ~10 150 ~10 minecraft:grass_block");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+				mc.player.setPitch(30);
+			}
+			case 97 -> {
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.mode.set("Glyphs");
+				jump.radius.set(2.0);
+				jump.duration.set(2.0);
+				jump.spawn(mc.player.getPos());
+				timedShots.put(ticks + 22, "zv_fx_glyphs");
+			}
+			case 98 -> {
+				var jump = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.JumpCircles.class);
+				jump.mode.set("Block wave");
+				jump.spawn(mc.player.getPos());
+				timedShots.put(ticks + 14, "zv_fx_wave");
+			}
+			case 99 -> {
+				mc.player.setPitch(10);
+				var ahead = mc.player.getRotationVector().multiply(1, 0, 1).normalize();
+				var at = mc.player.getPos().add(ahead.multiply(4.5)).add(-ahead.z * 2.2, 0, ahead.x * 2.2);
+				runCommand(mc, String.format(java.util.Locale.ROOT, "summon minecraft:husk %.2f %.2f %.2f {NoAI:1b,Silent:1b}", at.x, at.y, at.z));
+			}
+			case 100 -> {
+				var esp = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.TargetEsp.class);
+				esp.style.set("Crystals");
+				esp.keepTime.set(10.0);
+				mc.world.getEntitiesByClass(net.minecraft.entity.mob.HuskEntity.class, mc.player.getBoundingBox().expand(10), e -> true).stream().findFirst().ifPresent(TargetTracker::onAttack);
+				timedShots.put(ticks + 15, "zv_fx_crystals");
+			}
+			case 101 -> {
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.TargetEsp.class).style.set("Pulse");
+				timedShots.put(ticks + 12, "zv_fx_pulse");
+			}
+			case 102 -> {
+				runCommand(mc, "damage @e[type=husk,limit=1] 1");
+				timedShots.put(ticks + 4, "zv_fx_pulse_hit");
+			}
+			case 103 -> {
+				var kill = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.KillEffect.class);
+				kill.style.set("Soul");
+				mc.world.getEntitiesByClass(net.minecraft.entity.mob.HuskEntity.class, mc.player.getBoundingBox().expand(10), e -> true).stream().findFirst().ifPresent(kill::trigger);
+				timedShots.put(ticks + 22, "zv_fx_soul");
+			}
+			case 104 -> {
+				var wings = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Wings.class);
+				wings.style.set("Dragon");
+				mc.options.hudHidden = true;
+				timedShots.put(ticks + 12, "zv_fx_dragon");
+			}
+			case 105 -> {
+				mc.options.setPerspective(Perspective.FIRST_PERSON);
+				mc.player.setPitch(-28);
+				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.setEnabled(true);
+				sky.mode.set("Rifts");
+				timedShots.put(ticks + 20, "zv_fx_rifts");
+			}
+			case 106, 107, 108, 109, 110 -> {
+				mc.options.hudHidden = false;
+				mc.player.setPitch(0);
+				var cross = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Crosshair.class);
+				String style = new String[]{"T", "Square", "Brackets", "Chevron", "Diamond"}[step - 106];
+				cross.style.set(style);
+				cross.size.set(6.0);
+				timedShots.put(ticks + 6, "zv_fx_cross_" + style.toLowerCase());
+			}
+			case 111, 112, 113, 114 -> {
+				var anim = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Animations.class);
+				anim.setEnabled(true);
+				anim.mode.set(new String[]{"Stab", "Slam", "Backhand", "Twirl"}[step - 111]);
+				anim.swingSpeed.set(0.4);
+				mc.player.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+				timedShots.put(ticks + 5, "zv_fx_anim_" + (step - 111));
+			}
+			case 115 -> {
+				mc.options.hudHidden = true;
+				mc.options.setPerspective(Perspective.FIRST_PERSON);
+				mc.player.setPitch(-34);
+				timedShots.put(ticks + 6, "zv_fx_rifts_a");
+			}
+			case 116 -> {
+				mc.player.setYaw(mc.player.getYaw() + 14);
+				timedShots.put(ticks + 6, "zv_fx_rifts_b");
+			}
+			case 117 -> mc.options.hudHidden = false;
 			default -> mc.scheduleStop();
 		}
 		step++;

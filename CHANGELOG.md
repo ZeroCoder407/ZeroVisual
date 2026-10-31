@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+- **EmoteMenu**: an emote wheel (B by default) with 10 emotes: wave, clap, sit, lie down, Rat dance, Rampage, Funked up, the Russian squat dance, flex and moonwalk. Rat dance, Rampage and Funked up are tracked from real dancers. Arms, legs and the body bend in the middle as one solid piece. Players with ZeroVisual on the same server see your emotes; this can be turned off in the module.
+- **JumpCircles**: Glyphs (rings of glowing hieroglyphs) and Block wave (a round ridge runs across the tops of the blocks, like a wave through jelly).
+- **Crosshair**: T, Square, Brackets, Chevron, Diamond and Circle + Dot, and a color for when you aim at a target.
+- **TargetESP**: Crystals circling the target and a Pulse line that swings hard on every hit.
+- **KillEffect**: Soul, a beam of light with sparks spiralling up.
+- **Wings**: Dragon wings.
+- **CustomSky**: Rifts, the ordinary sky split by glowing cracks with depth inside, in three colors of your choice.
+- **Animations**: Stab, Slam, Backhand and Twirl.
+- **CinematicCamera**: the smooth camera of OptiFine, with adjustable strength.
+- **Pet**: Mini me swings its arms and taps its foot again on 26.3, and its idle animations wait for the end of an emote.
+
 ## 0.3.0
 
 - **Minecraft 26.3**: ZeroVisual now comes for both 1.21.4 and 26.3, with the same features.

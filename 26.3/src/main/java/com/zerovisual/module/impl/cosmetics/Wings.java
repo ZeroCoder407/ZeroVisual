@@ -1,5 +1,7 @@
 package com.zerovisual.module.impl.cosmetics;
 
+import com.zerovisual.emote.EmoteAnchor;
+import com.zerovisual.fx.Shapes;
 import com.zerovisual.gui.Theme;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
@@ -7,6 +9,7 @@ import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.WorldRender;
 import com.zerovisual.render.ZvPipelines;
 import com.zerovisual.setting.BooleanSetting;
+import com.zerovisual.setting.ModeSetting;
 import com.zerovisual.setting.NumberSetting;
 import com.zerovisual.render.WorldContext;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -23,6 +26,7 @@ public class Wings extends Module {
 		{0.48f, -0.40f}, {0.46f, -0.58f}, {0.28f, -0.48f}, {0.12f, -0.30f}
 	};
 
+	public final ModeSetting style = add(new ModeSetting("Style", "Angel", "Angel", "Dragon"));
 	public final NumberSetting size = add(new NumberSetting("Size", 0.7, 0.4, 1.2, 0.05));
 	public final NumberSetting flapSpeed = add(new NumberSetting("Flap speed", 1, 0.2, 3, 0.1));
 	public final BooleanSetting others = add(new BooleanSetting("Other players", false));
@@ -47,13 +51,14 @@ public class Wings extends Module {
 			float bodyYaw = Mth.rotLerp(tickDelta, player.yBodyRotO, player.yBodyRot);
 			// faster flapping while moving
 			double speed = player.getDeltaMovement().horizontalDistance();
-			float flap = (float) Math.sin(time * flapSpeed.getFloat() * (2.2 + speed * 8)) * 18f + 22f;
+			float beat = style.is("Dragon") ? 0.6f : 1f;
+			float flap = (float) Math.sin(time * flapSpeed.getFloat() * beat * (2.2 + speed * 8)) * (style.is("Dragon") ? 26f : 18f) + 22f;
 			float back = player.isCrouching() ? 0.35f : 0.18f;
 			float height = player.getBbHeight() * (player.isCrouching() ? 0.7f : 0.74f);
 
 			Matrix4f base = new Matrix4f()
-				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y) + height, (float) (pos.z - cam.z))
-				.rotateY((float) Math.toRadians(-bodyYaw))
+				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y), (float) (pos.z - cam.z))
+				.mul(EmoteAnchor.chest(player.getUUID(), bodyYaw, height))
 				.translate(0, 0, -back);
 			drawWing(base, 1, flap);
 			drawWing(base, -1, flap);
@@ -72,6 +77,15 @@ public class Wings extends Module {
 
 		int accent = Theme.accent();
 		int light = Theme.accentLight();
+
+		if (style.is("Dragon")) {
+			Matrix4f dragon = new Matrix4f(m).scale(1.3f);
+			int membrane = ColorUtil.withAlpha(ColorUtil.lerp(accent, 0xFF000000, 0.45f), 0.82f);
+			int shade = ColorUtil.withAlpha(ColorUtil.lerp(accent, 0xFF000000, 0.7f), 0.92f);
+			int bone = ColorUtil.withAlpha(ColorUtil.lerp(light, 0xFF000000, 0.25f), 1f);
+			WorldRender.quads(q -> Shapes.dragonWing(q, dragon, membrane, shade, bone));
+			return;
+		}
 
 		int root = ColorUtil.withAlpha(accent, 0.85f);
 		int edge = ColorUtil.withAlpha(light, 0.9f);

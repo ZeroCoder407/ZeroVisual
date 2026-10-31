@@ -38,6 +38,7 @@ public final class PwfSession implements PeerLink.Listener {
 	private long session;
 	private volatile InviteCode.NetInfo localNet, remoteNet;
 	private byte[] secret;
+	private volatile long room;
 	private final long createdAt = System.currentTimeMillis();
 
 	private PwfSession(boolean host, int lanPort) {
@@ -46,8 +47,9 @@ public final class PwfSession implements PeerLink.Listener {
 	}
 
 	/** Host side: the world is already published on {@code lanPort}. Gathering the addresses runs in the background. */
-	public static PwfSession host(int lanPort) {
+	public static PwfSession host(int lanPort, long room) {
 		PwfSession s = new PwfSession(true, lanPort);
+		s.room = room;
 		SecureRandom random = new SecureRandom();
 		s.session = random.nextLong();
 		s.secret = new byte[16];
@@ -56,7 +58,7 @@ public final class PwfSession implements PeerLink.Listener {
 			try {
 				PeerLink link = PeerLink.open();
 				s.link = link;
-				s.code = new InviteCode(false, s.session, s.secret, link.candidates(), link.netInfo()).encode();
+				s.code = new InviteCode(false, s.session, s.secret, link.candidates(), link.netInfo(), room).encode();
 				s.localNet = link.netInfo();
 				s.message = link.hasPublicAddress() ? "" : "no_public_address";
 				s.state = State.WAITING;
@@ -78,12 +80,13 @@ public final class PwfSession implements PeerLink.Listener {
 		PwfSession s = new PwfSession(false, 0);
 		s.session = invite.session();
 		s.secret = invite.secret();
+		s.room = invite.room();
 		s.onLocalPort = onLocalPort;
 		CompletableFuture.runAsync(() -> {
 			try {
 				PeerLink link = PeerLink.open();
 				s.link = link;
-				s.code = new InviteCode(true, s.session, null, link.candidates(), link.netInfo()).encode();
+				s.code = new InviteCode(true, s.session, null, link.candidates(), link.netInfo(), s.room).encode();
 				s.localNet = link.netInfo();
 				s.remoteNet = invite.net();
 				predict(link, invite);
@@ -122,6 +125,11 @@ public final class PwfSession implements PeerLink.Listener {
 	/** The network of the other player, null until their code arrived. */
 	public InviteCode.NetInfo remoteNet() {
 		return remoteNet;
+	}
+
+	/** Identifies this shared world for emotes. */
+	public long room() {
+		return room;
 	}
 
 	public boolean isHost() {

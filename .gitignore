@@ -35,3 +35,7 @@ __pycache__/
 # Promo videos and the session notes stay local
 docs/promo/
 HANDOFF.md
+
+# Relay dependencies
+node_modules/
+.wrangler/

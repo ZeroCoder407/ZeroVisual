@@ -2,11 +2,14 @@ package com.zerovisual.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.zerovisual.ZeroVisualClient;
+import com.zerovisual.emote.EmoteManager;
 import com.zerovisual.module.impl.visuals.Nametags;
+import com.zerovisual.util.EmoteState;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.world.entity.Avatar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,5 +23,17 @@ public class AvatarRendererMixin {
 	private void zerovisual$nametags(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
 		Nametags nametags = ZeroVisualClient.get().modules().get(Nametags.class);
 		if (nametags.isEnabled() && nametags.replace(state, collector)) ci.cancel();
+	}
+
+	/** Copies the emote pose of the player into the render state, like everything else the model needs. */
+	@Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
+	private void zerovisual$emotePose(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
+		EmoteState emote = (EmoteState) state;
+		emote.zerovisual$setWeight(EmoteManager.sample(entity.getUUID(), emote.zerovisual$pose()));
+		// a dance needs empty hands: what is held would only hide the moves
+		if (emote.zerovisual$weight() > 0) {
+			state.rightHandItemState.clear();
+			state.leftHandItemState.clear();
+		}
 	}
 }

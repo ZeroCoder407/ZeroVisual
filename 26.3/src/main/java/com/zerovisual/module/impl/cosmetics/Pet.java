@@ -5,6 +5,7 @@ import com.zerovisual.render.ZvPipelines;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.util.LightCoordsUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.zerovisual.emote.EmoteManager;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
@@ -149,8 +150,9 @@ public class Pet extends Module {
 			: (float) Math.toDegrees(Math.atan2(-(player.x - pos.x), player.z - pos.z));
 		yaw += Mth.wrapDegrees(wanted - yaw) * 0.35f;
 
-		// Mini me idle animations start a moment after it stops; running interrupts them
-		if (chasing || step > 0.02) idleSince = -1;
+		// Mini me idle animations start a moment after it stops; running interrupts them, and it copies the
+		// emotes of the player, so they also wait until the emote is over
+		if (chasing || step > 0.02 || EmoteManager.current(mc.player.getUUID()) != null) idleSince = -1;
 		else if (idleSince < 0) idleSince = System.currentTimeMillis();
 		prevSit = sit;
 		sit += ((idleAnimation(System.currentTimeMillis())[0] == IDLE_SIT ? 1f : 0f) - sit) * 0.15f;
@@ -351,11 +353,8 @@ public class Pet extends Module {
 		poseAnimation = (int) idle[0];
 		poseBlend = idle[1] * (1 - running);
 		poseTime = idle[2];
-		try {
-			renderer.submit(state, matrices, collector, WorldRender.cameraState());
-		} finally {
-			posedState = null;
-		}
+		// stays set: the game poses submitted models later in the frame, and only this state is ever compared with it
+		renderer.submit(state, matrices, collector, WorldRender.cameraState());
 	}
 
 	private static final ItemStack[] NO_ARMOR = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};

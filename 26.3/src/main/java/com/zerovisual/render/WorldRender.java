@@ -117,6 +117,62 @@ public final class WorldRender {
 		collector.submitCustomGeometry(IDENTITY, type, (p, buffer) -> builder.accept(buffer));
 	}
 
+	/** Nothing to do here: everything goes through the collector (1.21.4 draws queued blocks and text at this point). */
+	public static void flush() {
+	}
+
+	/** Colored quads with normal blending, hidden behind blocks. */
+	public static void quads(java.util.function.Consumer<com.zerovisual.fx.Quads> body) {
+		geometry(ZvPipelines.WORLD_COLOR_TYPE, b -> body.accept((m, x, y, z, c) -> b.addVertex(m, x, y, z).setColor(c)));
+	}
+
+	/** Colored quads that add light. */
+	public static void quadsAdditive(java.util.function.Consumer<com.zerovisual.fx.Quads> body) {
+		geometry(ZvPipelines.WORLD_COLOR_ADDITIVE_TYPE, b -> body.accept((m, x, y, z, c) -> b.addVertex(m, x, y, z).setColor(c)));
+	}
+
+	/**
+	 * The top of a block bent by a height field, with strips of its side texture along the {@code open} edges
+	 * (see WaveSheet for their order). {@code x, y, z} is the camera-relative corner of the top.
+	 */
+	public static void bentTop(net.minecraft.world.level.block.state.BlockState state, net.minecraft.core.BlockPos pos, float x, float y, float z,
+							   boolean[] open, com.zerovisual.fx.WaveSheet.Heights heights) {
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		var level = mc.level;
+		if (level == null) return;
+		java.util.List<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart> parts = new java.util.ArrayList<>();
+		mc.getModelManager().getBlockStateModelSet().get(state).collectParts(net.minecraft.util.RandomSource.create(state.getSeed(pos)), parts);
+		net.minecraft.core.BlockPos above = pos.above();
+		int light = net.minecraft.util.LightCoordsUtil.pack(level.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, above), level.getBrightness(net.minecraft.world.level.LightLayer.SKY, above));
+		int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+		geometry(net.minecraft.client.renderer.Sheets.cutoutBlockItemSheet(), b -> {
+			com.zerovisual.fx.WaveSheet.Sink sink = (vx, vy, vz, color, u, v, nx, ny, nz) -> b.addVertex(vx, vy, vz, color, u, v, overlay, light, nx, ny, nz);
+			float wx = pos.getX(), wz = pos.getZ();
+			for (var part : parts) {
+				for (var quad : part.getQuads(net.minecraft.core.Direction.UP)) {
+					var sprite = quad.materialInfo().sprite();
+					com.zerovisual.fx.WaveSheet.top(sink, x, y, z, wx, wz, sprite.getU0(), sprite.getV0(), sprite.getU1(), sprite.getV1(), tint(mc, state, level, pos, quad), heights);
+				}
+				net.minecraft.core.Direction[] sides = {net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.EAST, net.minecraft.core.Direction.SOUTH, net.minecraft.core.Direction.WEST};
+				for (int side = 0; side < 4; side++) {
+					if (!open[side]) continue;
+					for (var quad : part.getQuads(sides[side])) {
+						var sprite = quad.materialInfo().sprite();
+						com.zerovisual.fx.WaveSheet.side(sink, side, x, y, z, wx, wz, sprite.getU0(), sprite.getV0(), sprite.getU1(), sprite.getV1(), tint(mc, state, level, pos, quad), heights);
+					}
+				}
+			}
+		});
+	}
+
+	private static int tint(net.minecraft.client.Minecraft mc, net.minecraft.world.level.block.state.BlockState state, net.minecraft.client.multiplayer.ClientLevel level,
+							net.minecraft.core.BlockPos pos, net.minecraft.client.resources.model.geometry.BakedQuad quad) {
+		int index = quad.materialInfo().tintIndex();
+		if (index < 0) return 0xFFFFFFFF;
+		var source = mc.getBlockColors().getTintSource(state, index);
+		return source == null ? 0xFFFFFFFF : 0xFF000000 | source.colorInWorld(state, level, pos);
+	}
+
 	/** A line of the given width in the local XY plane of {@code m}, as a quad (for use inside {@link #geometry}). */
 	public static void line(VertexConsumer buffer, Matrix4fc m, float x0, float y0, float x1, float y1, float width, int color0, int color1) {
 		float dx = x1 - x0, dy = y1 - y0;

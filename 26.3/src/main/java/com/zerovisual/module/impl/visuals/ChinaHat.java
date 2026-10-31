@@ -1,5 +1,6 @@
 package com.zerovisual.module.impl.visuals;
 
+import com.zerovisual.emote.EmoteAnchor;
 import com.zerovisual.gui.Theme;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
@@ -44,9 +45,10 @@ public class ChinaHat extends Module {
 	private void drawHat(AbstractClientPlayer player, float tickDelta, Vec3 cam) {
 		Vec3 pos = player.getPosition(tickDelta);
 		float yaw = Mth.rotLerp(tickDelta, player.yHeadRotO, player.yHeadRot);
+		float bodyYaw = Mth.rotLerp(tickDelta, player.yBodyRotO, player.yBodyRot);
 		Matrix4f m = new Matrix4f()
-			.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y) + player.getBbHeight() + 0.03f, (float) (pos.z - cam.z))
-			.rotateY((float) Math.toRadians(-yaw));
+			.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y), (float) (pos.z - cam.z))
+			.mul(EmoteAnchor.head(player.getUUID(), bodyYaw, yaw, player.getBbHeight(), 0.03f));
 
 		float r = radius.getFloat();
 		float h = height.getFloat();

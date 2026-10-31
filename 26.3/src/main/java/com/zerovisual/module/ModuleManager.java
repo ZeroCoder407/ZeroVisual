@@ -3,6 +3,7 @@ package com.zerovisual.module;
 import com.zerovisual.module.impl.cosmetics.Pet;
 import com.zerovisual.module.impl.cosmetics.TotemPop;
 import com.zerovisual.module.impl.cosmetics.Cape;
+import com.zerovisual.module.impl.cosmetics.EmoteMenu;
 import com.zerovisual.module.impl.cosmetics.HitParticles;
 import com.zerovisual.module.impl.cosmetics.FireFlies;
 import com.zerovisual.module.impl.cosmetics.Halo;
@@ -59,6 +60,7 @@ import com.zerovisual.module.impl.visuals.ChinaHat;
 import com.zerovisual.module.impl.visuals.NoWeather;
 import com.zerovisual.module.impl.visuals.ViewModel;
 import com.zerovisual.module.impl.visuals.Crosshair;
+import com.zerovisual.module.impl.visuals.CinematicCamera;
 import com.zerovisual.module.impl.visuals.FullBright;
 import com.zerovisual.module.impl.visuals.HitColor;
 import com.zerovisual.module.impl.visuals.ShieldColor;
@@ -96,6 +98,7 @@ public class ModuleManager {
 		add(new Ambience());
 		add(new LowFire());
 		add(new Freelook());
+		add(new CinematicCamera());
 		add(new TargetEsp());
 		add(new DamageNumbers());
 		add(new Nametags());
@@ -105,6 +108,7 @@ public class ModuleManager {
 
 		// Cosmetics
 		add(new Cape());
+		add(new EmoteMenu());
 		add(new HitParticles());
 		add(new Trails());
 		add(new FireFlies());

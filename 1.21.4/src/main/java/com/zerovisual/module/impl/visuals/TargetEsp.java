@@ -1,11 +1,13 @@
 package com.zerovisual.module.impl.visuals;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.zerovisual.fx.Shapes;
 import com.zerovisual.gui.Theme;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
 import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
+import com.zerovisual.render.WorldRender;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.setting.ModeSetting;
 import com.zerovisual.setting.NumberSetting;
@@ -20,9 +22,11 @@ import org.joml.Matrix4f;
  * Depth-tested: it does not show through walls.
  */
 public class TargetEsp extends Module {
-	public final ModeSetting style = add(new ModeSetting("Style", "Ring", "Ring", "Marker"));
+	public final ModeSetting style = add(new ModeSetting("Style", "Ring", "Ring", "Marker", "Crystals", "Pulse"));
 	public final NumberSetting keepTime = add(new NumberSetting("Keep time", 3, 1, 10, 0.5));
 	public final NumberSetting speed = add(new NumberSetting("Speed", 1, 0.3, 3, 0.1));
+
+	private static final int CRYSTALS = 5;
 
 	private final Anim visible = new Anim(10f, 0f);
 	private LivingEntity shown;
@@ -46,6 +50,11 @@ public class TargetEsp extends Module {
 		float time = (System.currentTimeMillis() % 100_000L) / 1000f * speed.getFloat();
 		int accent = Theme.accent();
 		int light = Theme.accentLight();
+
+		if (style.is("Crystals") || style.is("Pulse")) {
+			renderNew(context, pos, cam, time, v, accent, light);
+			return;
+		}
 
 		RenderSystem.enableDepthTest();
 		RenderSystem.depthMask(false);
@@ -78,5 +87,36 @@ public class TargetEsp extends Module {
 
 		RenderSystem.enableCull();
 		RenderSystem.depthMask(true);
+	}
+
+	private void renderNew(WorldRenderContext context, Vec3d pos, Vec3d cam, float time, float v, int accent, int light) {
+		if (style.is("Crystals")) {
+			renderCrystals(pos, cam, time, v, accent, light);
+			return;
+		}
+		if (style.is("Pulse")) {
+			Matrix4f m = new Matrix4f()
+				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y) + shown.getHeight() + 0.42f, (float) (pos.z - cam.z))
+				.rotate(context.camera().getRotation());
+			// the hit: the line swings hard and turns red, then calms down as the hurt time runs out
+			float kick = shown.hurtTime / 10f;
+			int color = ColorUtil.withAlpha(ColorUtil.lerp(accent, 0xFFFF3050, kick), v);
+			float t = time;
+			WorldRender.quads(q -> Shapes.pulse(q, m, 1.1f, 0.22f, t, kick, color));
+			return;
+		}
+	}
+
+	/** Crystals circling the target, each bobbing at its own pace. */
+	private void renderCrystals(Vec3d pos, Vec3d cam, float time, float v, int accent, int light) {
+		float radius = shown.getWidth() * 0.75f + 0.4f;
+		for (int i = 0; i < CRYSTALS; i++) {
+			double angle = time * 1.5 + i * 2 * Math.PI / CRYSTALS;
+			float x = (float) (pos.x - cam.x + Math.cos(angle) * radius), z = (float) (pos.z - cam.z + Math.sin(angle) * radius);
+			float y = (float) (pos.y - cam.y) + shown.getHeight() * (0.5f + 0.34f * (float) Math.sin(time * 1.9 + i * 1.3));
+			Matrix4f m = new Matrix4f().translate(x, y, z).rotateY(time * 2.4f + i).rotateZ(0.25f);
+			int top = ColorUtil.withAlpha(light, 0.95f * v), bottom = ColorUtil.withAlpha(accent, 0.85f * v);
+			WorldRender.quads(q -> Shapes.crystal(q, m, 0.13f, top, bottom));
+		}
 	}
 }

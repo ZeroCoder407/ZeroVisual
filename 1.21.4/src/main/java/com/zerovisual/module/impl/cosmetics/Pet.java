@@ -1,6 +1,7 @@
 package com.zerovisual.module.impl.cosmetics;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.zerovisual.emote.EmoteManager;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
@@ -153,8 +154,9 @@ public class Pet extends Module {
 			: (float) Math.toDegrees(Math.atan2(-(player.x - pos.x), player.z - pos.z));
 		yaw += MathHelper.wrapDegrees(wanted - yaw) * 0.35f;
 
-		// Mini me idle animations start a moment after it stops; running interrupts them
-		if (chasing || step > 0.02) idleSince = -1;
+		// Mini me idle animations start a moment after it stops; running interrupts them, and it copies the
+		// emotes of the player, so they also wait until the emote is over
+		if (chasing || step > 0.02 || EmoteManager.current(mc.player.getUuid()) != null) idleSince = -1;
 		else if (idleSince < 0) idleSince = System.currentTimeMillis();
 		prevSit = sit;
 		sit += ((idleAnimation(System.currentTimeMillis())[0] == IDLE_SIT ? 1f : 0f) - sit) * 0.15f;

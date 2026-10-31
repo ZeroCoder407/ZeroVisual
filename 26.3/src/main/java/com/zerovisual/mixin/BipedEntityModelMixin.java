@@ -1,6 +1,9 @@
 package com.zerovisual.mixin;
 
 import com.zerovisual.module.impl.cosmetics.Pet;
+import com.zerovisual.util.EmoteRig;
+import com.zerovisual.util.EmoteRigHolder;
+import com.zerovisual.util.EmoteState;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
@@ -8,6 +11,7 @@ import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,7 +21,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the same method, so the armor follows the arms and legs.
  */
 @Mixin(HumanoidModel.class)
-public class BipedEntityModelMixin {
+public class BipedEntityModelMixin implements EmoteRigHolder {
+	@Unique
+	private EmoteRig zerovisual$rig;
+
 	@Shadow
 	@Final
 	public ModelPart head;
@@ -36,6 +43,22 @@ public class BipedEntityModelMixin {
 	@Shadow
 	@Final
 	public ModelPart leftLeg;
+
+	@Override
+	public EmoteRig zerovisual$rig() {
+		return zerovisual$rig;
+	}
+
+	/** Emotes bend the player model and its armor models; the limbs are only cut once somebody plays one. */
+	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V", at = @At("TAIL"))
+	private void zerovisual$emote(HumanoidRenderState state, CallbackInfo ci) {
+		if (!(state instanceof EmoteState emote)) return;
+		float weight = emote.zerovisual$weight();
+		if (weight > 0 && zerovisual$rig == null) zerovisual$rig = new EmoteRig((HumanoidModel<?>) (Object) this);
+		if (zerovisual$rig == null) return;
+		zerovisual$rig.rest();
+		if (weight > 0) zerovisual$rig.apply(emote.zerovisual$pose(), weight);
+	}
 
 	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V", at = @At("TAIL"))
 	private void zerovisual$miniMeIdle(HumanoidRenderState state, CallbackInfo ci) {

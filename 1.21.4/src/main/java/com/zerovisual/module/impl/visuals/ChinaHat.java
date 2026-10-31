@@ -1,6 +1,7 @@
 package com.zerovisual.module.impl.visuals;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.zerovisual.emote.EmoteAnchor;
 import com.zerovisual.gui.Theme;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
@@ -59,9 +60,10 @@ public class ChinaHat extends Module {
 	private void drawHat(AbstractClientPlayerEntity player, float tickDelta, Vec3d cam) {
 		Vec3d pos = player.getLerpedPos(tickDelta);
 		float yaw = MathHelper.lerpAngleDegrees(tickDelta, player.prevHeadYaw, player.headYaw);
+		float bodyYaw = MathHelper.lerpAngleDegrees(tickDelta, player.prevBodyYaw, player.bodyYaw);
 		Matrix4f m = new Matrix4f()
-			.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y) + player.getHeight() + 0.03f, (float) (pos.z - cam.z))
-			.rotateY((float) Math.toRadians(-yaw));
+			.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y), (float) (pos.z - cam.z))
+			.mul(EmoteAnchor.head(player.getUuid(), bodyYaw, yaw, player.getHeight(), 0.03f));
 
 		float r = radius.getFloat();
 		float h = height.getFloat();

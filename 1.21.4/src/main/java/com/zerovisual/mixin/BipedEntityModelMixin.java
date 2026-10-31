@@ -1,6 +1,9 @@
 package com.zerovisual.mixin;
 
 import com.zerovisual.module.impl.cosmetics.Pet;
+import com.zerovisual.util.EmoteRig;
+import com.zerovisual.util.EmoteRigHolder;
+import com.zerovisual.util.EmoteState;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.client.render.entity.state.BipedEntityRenderState;
@@ -8,6 +11,7 @@ import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,7 +21,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the same method, so the armor follows the arms and legs.
  */
 @Mixin(BipedEntityModel.class)
-public class BipedEntityModelMixin {
+public class BipedEntityModelMixin implements EmoteRigHolder {
+	@Unique
+	private EmoteRig zerovisual$rig;
+
 	@Shadow
 	@Final
 	public ModelPart head;
@@ -36,6 +43,31 @@ public class BipedEntityModelMixin {
 	@Shadow
 	@Final
 	public ModelPart leftLeg;
+
+	@Override
+	public EmoteRig zerovisual$rig() {
+		return zerovisual$rig;
+	}
+
+	/** Emotes bend the player model; the limbs are only cut once somebody plays one. */
+	@Inject(method = "setAngles(Lnet/minecraft/client/render/entity/state/BipedEntityRenderState;)V", at = @At("TAIL"))
+	private void zerovisual$emote(BipedEntityRenderState state, CallbackInfo ci) {
+		if (!(state instanceof EmoteState emote)) return;
+		float weight = emote.zerovisual$weight();
+		if (weight > 0 && zerovisual$rig == null) zerovisual$rig = new EmoteRig((BipedEntityModel<?>) (Object) this);
+		if (zerovisual$rig == null) return;
+		zerovisual$rig.rest();
+		if (weight > 0) zerovisual$rig.apply(emote.zerovisual$pose(), weight);
+	}
+
+	/** The armor model copies its pose from the player model: the bends go along. */
+	@Inject(method = "copyTransforms", at = @At("TAIL"))
+	private void zerovisual$emoteArmor(BipedEntityModel<?> target, CallbackInfo ci) {
+		if (zerovisual$rig == null) return;
+		EmoteRigHolder holder = (EmoteRigHolder) target;
+		if (holder.zerovisual$rig() == null) ((BipedEntityModelMixin) (Object) target).zerovisual$rig = new EmoteRig(target);
+		holder.zerovisual$rig().copyFrom(zerovisual$rig);
+	}
 
 	@Inject(method = "setAngles(Lnet/minecraft/client/render/entity/state/BipedEntityRenderState;)V", at = @At("TAIL"))
 	private void zerovisual$miniMeIdle(BipedEntityRenderState state, CallbackInfo ci) {

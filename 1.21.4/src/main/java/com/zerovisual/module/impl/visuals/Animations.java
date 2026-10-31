@@ -14,7 +14,7 @@ import net.minecraft.util.math.RotationAxis;
  * Applied in HeldItemRendererMixin (swingArm) and LivingEntityMixin (swing speed).
  */
 public class Animations extends Module {
-	public final ModeSetting mode = add(new ModeSetting("Style", "Smooth", "Vanilla", "Old", "Smooth", "Swipe", "Chop", "Push", "Spin"));
+	public final ModeSetting mode = add(new ModeSetting("Style", "Smooth", "Vanilla", "Old", "Smooth", "Swipe", "Chop", "Push", "Spin", "Stab", "Slam", "Backhand", "Twirl"));
 	public final NumberSetting swingSpeed = add(new NumberSetting("Swing speed", 1, 0.4, 2, 0.1));
 	public final BooleanSetting noEquip = add(new BooleanSetting("No re-equip", false));
 
@@ -79,6 +79,38 @@ public class Animations extends Module {
 				rotateY(m, side * 45f);
 				rotateX(m, -360f * progress);
 				rotateY(m, side * -45f);
+			}
+			case "Stab" -> {
+				// drawn back first, then thrust straight forward
+				float pull = Math.max(0, 1 - progress * 4), thrust = sin * sin;
+				m.translate(0, 0.02f * pull, 0.12f * pull - 0.5f * thrust);
+				rotateY(m, side * 45f);
+				rotateX(m, -28f * sqrt);
+				rotateZ(m, side * -10f * thrust);
+				rotateY(m, side * -45f);
+			}
+			case "Slam" -> {
+				// raised high over the shoulder, then brought down hard
+				float lift = sin * (1 - progress);
+				m.translate(0, 0.32f * lift - 0.14f * sinSq, -0.1f * sqrt);
+				rotateY(m, side * 45f);
+				rotateX(m, 55f * lift - 135f * sinSq);
+				rotateY(m, side * -45f);
+			}
+			case "Backhand" -> {
+				// the hand crosses the body and sweeps back out
+				m.translate(side * (-0.34f * sin + 0.2f * sinSq), 0.05f * sqrt, -0.14f * sqrt);
+				rotateY(m, side * (45f + 75f * sin));
+				rotateZ(m, side * 38f * sin);
+				rotateX(m, -30f * sqrt);
+				rotateY(m, side * -45f);
+			}
+			case "Twirl" -> {
+				// a full turn of the wrist around the blade
+				m.translate(0, 0.05f * sin, -0.12f * sin);
+				rotateY(m, side * 45f);
+				rotateX(m, -32f * sqrt);
+				rotateY(m, side * (-45f + 360f * progress));
 			}
 			default -> {
 				// "Vanilla" never reaches here (the mixin keeps the original method)

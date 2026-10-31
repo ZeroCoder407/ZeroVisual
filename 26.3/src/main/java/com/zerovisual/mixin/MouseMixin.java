@@ -10,6 +10,7 @@ import net.minecraft.client.input.MouseButtonInfo;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MouseHandler.class)
@@ -29,5 +30,12 @@ public class MouseMixin {
 		boolean discrete = mc.options.discreteMouseScroll().get();
 		double amount = (discrete ? Math.signum(vertical) : vertical) * mc.options.mouseWheelSensitivity().get();
 		if (ZeroVisualClient.get().modules().get(Zoom.class).onScroll(amount)) ci.cancel();
+	}
+
+	/** CinematicCamera: the strength of the smoothing. */
+	@ModifyArg(method = "turnPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/SmoothDouble;getNewDeltaValue(DD)D"), index = 1)
+	private double zerovisual$cinematic(double time) {
+		ZeroVisualClient client = ZeroVisualClient.get();
+		return client == null ? time : client.modules().get(com.zerovisual.module.impl.visuals.CinematicCamera.class).smoothingTime(time);
 	}
 }

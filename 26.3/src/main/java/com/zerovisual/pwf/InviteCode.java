@@ -15,7 +15,7 @@ import java.util.List;
  * invite from you, the addresses where each side can be reached and what kind of network it is on.
  * Invite: host to friend. Answer: friend back to host.
  */
-public record InviteCode(boolean answer, long session, byte[] secret, List<InetSocketAddress> addresses, NetInfo net) {
+public record InviteCode(boolean answer, long session, byte[] secret, List<InetSocketAddress> addresses, NetInfo net, long room) {
 	private static final String INVITE_PREFIX = "ZV-INV-";
 	private static final String ANSWER_PREFIX = "ZV-ANS-";
 	private static final int VERSION = 2;
@@ -51,6 +51,8 @@ public record InviteCode(boolean answer, long session, byte[] secret, List<InetS
 			out.writeByte(net.publicIndex());
 			out.writeByte((net.symmetric() ? 1 : 0) | (net.upnp() ? 2 : 0) | (net.cgnat() ? 4 : 0) | (net.vpn() ? 8 : 0));
 			out.writeShort(Math.max(-32768, Math.min(32767, net.portDelta())));
+			// the same for every friend of this world: emotes go through it
+			out.writeLong(room);
 			return (answer ? ANSWER_PREFIX : INVITE_PREFIX) + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes.toByteArray());
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
@@ -82,7 +84,8 @@ public record InviteCode(boolean answer, long session, byte[] secret, List<InetS
 			int flags = in.readUnsignedByte();
 			int delta = in.readShort();
 			NetInfo net = new NetInfo(publicIndex < addresses.size() ? publicIndex : -1, (flags & 1) != 0, delta, (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0);
-			return new InviteCode(answer, session, answer ? null : secret, addresses, net);
+			long room = in.available() >= 8 ? in.readLong() : 0;
+			return new InviteCode(answer, session, answer ? null : secret, addresses, net, room);
 		} catch (IOException | IllegalArgumentException e) {
 			return null;
 		}

@@ -1,5 +1,6 @@
 package com.zerovisual.module.impl.cosmetics;
 
+import com.zerovisual.emote.EmoteAnchor;
 import com.zerovisual.gui.Theme;
 import com.zerovisual.module.Category;
 import com.zerovisual.module.Module;
@@ -32,8 +33,12 @@ public class Halo extends Module {
 			if (self && !context.camera().isThirdPerson()) continue;
 			if (!self && !others.get()) continue;
 			if (player.isInvisible()) continue;
-			Vec3d pos = player.getLerpedPos(tickDelta).add(0, player.getHeight() + 0.2 + bob, 0);
-			Matrix4f m = WorldRender.flat(pos, cam);
+			Vec3d pos = player.getLerpedPos(tickDelta);
+			float bodyYaw = net.minecraft.util.math.MathHelper.lerpAngleDegrees(tickDelta, player.prevBodyYaw, player.bodyYaw);
+			Matrix4f m = new Matrix4f()
+				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y), (float) (pos.z - cam.z))
+				.mul(EmoteAnchor.head(player.getUuid(), bodyYaw, bodyYaw, player.getHeight(), 0.2f + bob))
+				.rotateX((float) Math.toRadians(90));
 			WorldRender.ring(m, radius.getFloat(), 0.045f, Theme.accentLight(), Theme.accent(), 0.08f);
 		}
 		WorldRender.end();

@@ -7,6 +7,7 @@ import com.zerovisual.module.Module;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import com.zerovisual.render.SpaceTextures;
+import com.zerovisual.setting.ColorSetting;
 import com.zerovisual.setting.ModeSetting;
 import com.zerovisual.setting.NumberSetting;
 import net.minecraft.client.gl.ShaderProgramKeys;
@@ -28,7 +29,8 @@ import java.util.Random;
  * Replaces the overworld sky (SkyRenderingMixin):
  * Galaxy - nebulae, the milky way and twinkling stars;
  * Realistic - an atmosphere that follows the sun, with sunsets, a glowing sun, the moon and stars at night;
- * Black hole - deep space with a huge black hole and its accretion disk, as seen from a planet.
+ * Black hole - deep space with a huge black hole and its accretion disk, as seen from a planet;
+ * Rifts - the ordinary sky, split by glowing cracks like passages to another world.
  */
 public class CustomSky extends Module {
 	private static final float DISTANCE = 40;
@@ -36,12 +38,16 @@ public class CustomSky extends Module {
 	/** Fixed direction of the black hole in the sky. */
 	private static final Vector3f HOLE_DIR = new Vector3f(0.55f, 0.36f, -0.75f).normalize();
 
-	public final ModeSetting mode = add(new ModeSetting("Mode", "Galaxy", "Galaxy", "Realistic", "Black hole"));
+	public final ModeSetting mode = add(new ModeSetting("Mode", "Galaxy", "Galaxy", "Realistic", "Black hole", "Rifts"));
 	public final NumberSetting stars = add(new NumberSetting("Stars", 1, 0, 2, 0.1));
+	public final ColorSetting riftColor1 = add(new ColorSetting("Rift color 1", 0xFF8B5CF6).visibleWhen(() -> mode.is("Rifts")));
+	public final ColorSetting riftColor2 = add(new ColorSetting("Rift color 2", 0xFF22D3EE).visibleWhen(() -> mode.is("Rifts")));
+	public final ColorSetting riftColor3 = add(new ColorSetting("Rift color 3", 0xFFFF4D8D).visibleWhen(() -> mode.is("Rifts")));
 
 	private final SpaceTextures galaxy = new SpaceTextures(SpaceTextures.GALAXY);
 	private final SpaceTextures deep = new SpaceTextures(SpaceTextures.DEEP);
 	private final float[][] starData = new float[STARS][];
+	private final com.zerovisual.fx.SkyRifts rifts = new com.zerovisual.fx.SkyRifts();
 	/** Fog color for the current frame, so the horizon blends into the sky. */
 	private float fogR, fogG, fogB;
 
@@ -65,7 +71,7 @@ public class CustomSky extends Module {
 
 	/** Clouds do not belong in space (WorldRendererMixin). */
 	public boolean hidesClouds() {
-		return isActive() && !mode.is("Realistic");
+		return isActive() && !mode.is("Realistic") && !mode.is("Rifts");
 	}
 
 	public float[] fogColor() {
@@ -87,6 +93,15 @@ public class CustomSky extends Module {
 		Matrix4f celestial = new Matrix4f().rotateY((float) Math.toRadians(-90)).rotateX(skyAngle * MathHelper.TAU);
 		switch (mode.get()) {
 			case "Realistic" -> renderRealistic(celestial, skyAngle, rain, time);
+			case "Rifts" -> {
+				renderRealistic(celestial, skyAngle, rain, time);
+				Matrix4f m = new Matrix4f();
+				rifts.setColors(riftColor1.get() | 0xFF000000, riftColor2.get() | 0xFF000000, riftColor3.get() | 0xFF000000);
+				var camera = mc.gameRenderer.getCamera();
+				net.minecraft.util.math.Vec3d look = net.minecraft.util.math.Vec3d.fromPolar(camera.getPitch(), camera.getYaw());
+				com.zerovisual.render.WorldRender.quads(q -> rifts.fill(q, m, (float) look.x, (float) look.y, (float) look.z, time));
+				com.zerovisual.render.WorldRender.quadsAdditive(q -> rifts.glow(q, m, time));
+			}
 			case "Black hole" -> {
 				drawSpace(deep, celestial, 1f);
 				drawStars(celestial, 1f, time);
