@@ -194,7 +194,8 @@ public final class WorldRender {
 		if (collector == null) return;
 		PoseStack stack = new PoseStack();
 		stack.last().pose().set(m);
-		collector.submitText(stack, x, y, text.getVisualOrderText(), shadow,
+		// order 1: in order 0 the game draws text before custom geometry, a background would cover it
+		collector.order(1).submitText(stack, x, y, text.getVisualOrderText(), shadow,
 			seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, LightCoordsUtil.FULL_BRIGHT, color, background, 0);
 	}
 

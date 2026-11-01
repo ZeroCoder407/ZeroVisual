@@ -62,7 +62,7 @@ public class Compass extends HudModule {
 		Render2D.rect(ctx, cx - 0.75f, y + 1, 1.5f, 3, 0.75f, accent);
 		String degrees = Math.round(heading) % 360 + "°";
 		float dw = Render2D.textWidth(degrees) * 0.7f + 6;
-		Render2D.rect(ctx, cx - dw / 2, y + H + 2, dw, 9, 3, 0xD00D0D12);
+		Render2D.rect(ctx, cx - dw / 2, y + H + 2, dw, 9, 3, Theme.cardColor());
 		Render2D.scaledText(ctx, degrees, cx - Render2D.textWidth(degrees) * 0.7f / 2, y + H + 3.5f, 0.7f, Theme.TEXT);
 	}
 }

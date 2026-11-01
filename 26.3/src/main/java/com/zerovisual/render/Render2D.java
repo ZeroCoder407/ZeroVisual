@@ -22,6 +22,9 @@ import org.joml.Matrix4fc;
  * Shapes are added to the frame's GUI render state like vanilla elements, so they keep draw order with text and items.
  */
 public final class Render2D {
+	/** How far the edges of a sector fade out. */
+	private static final float SECTOR_EDGE = 0.6f;
+
 	/** Global opacity multiplier, used for fade animations. */
 	private static float alpha = 1f;
 
@@ -59,6 +62,13 @@ public final class Render2D {
 
 	public static void circle(GuiGraphicsExtractor ctx, float cx, float cy, float r, int color) {
 		rect(ctx, cx - r, cy - r, r * 2, r * 2, r, color);
+	}
+
+	/** A part of a ring: angles in radians, clockwise from the right; the color goes from the inner to the outer edge. */
+	public static void sector(GuiGraphicsExtractor ctx, float cx, float cy, float inner, float outer, float from, float to, int innerColor, int outerColor) {
+		if (alpha <= 0) return;
+		ctx.guiRenderState.addGuiElement(new SectorState(new Matrix3x2f(ctx.pose()), cx, cy, inner, outer, from, to,
+			applyAlpha(innerColor), applyAlpha(outerColor), ctx.scissorStack.peek()));
 	}
 
 	/** Any rounded shape with four corner colors (top left, top right, bottom right, bottom left). */
@@ -106,6 +116,37 @@ public final class Render2D {
 		return (a << 24) | (argb & 0x00FFFFFF);
 	}
 
+	/** Where a corner of {@link #sectorMesh} goes. */
+	private interface Corner {
+		void put(float x, float y, int color);
+	}
+
+	/**
+	 * Quads of a part of a ring. The geometry has no anti-aliasing of its own, so every edge fades out over
+	 * {@link #SECTOR_EDGE}; the winding is the one of vanilla GUI quads (the GUI pipeline culls back faces).
+	 */
+	private static void sectorMesh(Corner out, float cx, float cy, float inner, float outer, float from, float to, int innerColor, int outerColor) {
+		float[] radii = {inner - SECTOR_EDGE, inner, outer, outer + SECTOR_EDGE};
+		int steps = Math.max(1, (int) Math.ceil((to - from) * outer / 4));
+		for (int j = 0; j < 3; j++) {
+			for (int i = -1; i <= steps; i++) {
+				sectorCorner(out, cx, cy, radii, j, i, steps, from, to, innerColor, outerColor);
+				sectorCorner(out, cx, cy, radii, j, i + 1, steps, from, to, innerColor, outerColor);
+				sectorCorner(out, cx, cy, radii, j + 1, i + 1, steps, from, to, innerColor, outerColor);
+				sectorCorner(out, cx, cy, radii, j + 1, i, steps, from, to, innerColor, outerColor);
+			}
+		}
+	}
+
+	private static void sectorCorner(Corner out, float cx, float cy, float[] radii, int j, int i, int steps, float from, float to, int innerColor, int outerColor) {
+		float r = radii[j];
+		float side = SECTOR_EDGE / Math.max(r, 1);
+		float angle = i < 0 ? from - side : i > steps ? to + side : from + (to - from) * i / steps;
+		int color = ColorUtil.lerp(innerColor, outerColor, Math.max(0, Math.min(1, (r - radii[1]) / (radii[2] - radii[1]))));
+		boolean edge = j == 0 || j == 3 || i < 0 || i > steps;
+		out.put(cx + (float) Math.cos(angle) * r, cy + (float) Math.sin(angle) * r, edge ? color & 0x00FFFFFF : color);
+	}
+
 	/** A rounded shape as a GUI element, batched with the other elements of its stratum. */
 	private record ShapeState(Matrix3x2fc pose, float x, float y, float w, float h, float radius, float thickness, float softness,
 							  int topLeft, int topRight, int bottomRight, int bottomLeft,
@@ -132,6 +173,35 @@ public final class Render2D {
 		@Override
 		public com.mojang.renderpearl.api.pipeline.RenderPipeline pipeline() {
 			return ZvPipelines.GUI_SHAPE;
+		}
+
+		@Override
+		public TextureSetup textureSetup() {
+			return TextureSetup.noTexture();
+		}
+	}
+
+	/** A part of a ring as a GUI element. */
+	private record SectorState(Matrix3x2fc pose, float cx, float cy, float inner, float outer, float from, float to, int innerColor, int outerColor,
+							   @Nullable ScreenRectangle scissorArea, @Nullable ScreenRectangle bounds) implements GuiElementRenderState {
+		SectorState(Matrix3x2fc pose, float cx, float cy, float inner, float outer, float from, float to, int innerColor, int outerColor, @Nullable ScreenRectangle scissorArea) {
+			this(pose, cx, cy, inner, outer, from, to, innerColor, outerColor, scissorArea, bounds(pose, cx, cy, outer, scissorArea));
+		}
+
+		private static @Nullable ScreenRectangle bounds(Matrix3x2fc pose, float cx, float cy, float outer, @Nullable ScreenRectangle scissorArea) {
+			int r = (int) Math.ceil(outer) + 2;
+			ScreenRectangle rect = new ScreenRectangle((int) Math.floor(cx) - r, (int) Math.floor(cy) - r, r * 2, r * 2).transformMaxBounds(pose);
+			return scissorArea != null ? scissorArea.intersection(rect) : rect;
+		}
+
+		@Override
+		public void buildVertices(VertexConsumer buffer) {
+			sectorMesh((x, y, color) -> buffer.addVertexWith2DPose(pose, x, y).setColor(color), cx, cy, inner, outer, from, to, innerColor, outerColor);
+		}
+
+		@Override
+		public com.mojang.renderpearl.api.pipeline.RenderPipeline pipeline() {
+			return net.minecraft.client.renderer.RenderPipelines.GUI;
 		}
 
 		@Override

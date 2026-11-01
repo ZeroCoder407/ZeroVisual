@@ -39,6 +39,7 @@ public class CustomSky extends Module {
 	public final ColorSetting riftColor1 = add(new ColorSetting("Rift color 1", 0xFF8B5CF6).visibleWhen(() -> mode.is("Rifts")));
 	public final ColorSetting riftColor2 = add(new ColorSetting("Rift color 2", 0xFF22D3EE).visibleWhen(() -> mode.is("Rifts")));
 	public final ColorSetting riftColor3 = add(new ColorSetting("Rift color 3", 0xFFFF4D8D).visibleWhen(() -> mode.is("Rifts")));
+	public final NumberSetting riftLightness = add(new NumberSetting("Rift lightness", 0.5, 0, 1, 0.02).visibleWhen(() -> mode.is("Rifts")));
 
 	private final SpaceTextures galaxy = new SpaceTextures(SpaceTextures.GALAXY);
 	private final SpaceTextures deep = new SpaceTextures(SpaceTextures.DEEP);
@@ -99,7 +100,8 @@ public class CustomSky extends Module {
 			case "Rifts" -> {
 				renderRealistic(celestial, sunAngle, rain, time);
 				Matrix4f m = new Matrix4f();
-				rifts.setColors(riftColor1.get() | 0xFF000000, riftColor2.get() | 0xFF000000, riftColor3.get() | 0xFF000000);
+				float lightness = riftLightness.getFloat();
+				rifts.setColors(ColorUtil.lightness(riftColor1.get(), lightness), ColorUtil.lightness(riftColor2.get(), lightness), ColorUtil.lightness(riftColor3.get(), lightness));
 				var camera = mc.gameRenderer.mainCamera();
 				Vec3 look = Vec3.directionFromRotation(camera.xRot(), camera.yRot());
 				batch.quads(ZvPipelines.SKY_COLOR, b -> rifts.fill((mat, x, y, z, c) -> b.addVertex(mat, x, y, z).setColor(c), m, (float) look.x, (float) look.y, (float) look.z, time));

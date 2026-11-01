@@ -51,6 +51,7 @@ import com.zerovisual.module.impl.hud.Keystrokes;
 import com.zerovisual.module.impl.hud.ModuleList;
 import com.zerovisual.module.impl.hud.Potions;
 import com.zerovisual.module.impl.hud.TargetHud;
+import com.zerovisual.module.impl.hud.HudStyle;
 import com.zerovisual.module.impl.hud.Watermark;
 import com.zerovisual.module.impl.utilities.ClickGui;
 import com.zerovisual.module.impl.utilities.MainMenu;
@@ -105,6 +106,7 @@ public class ModuleManager {
 		add(new MotionBlur());
 		add(new GlintColor());
 		add(new CustomSky());
+		add(new com.zerovisual.module.impl.visuals.Seasons());
 
 		// Cosmetics
 		add(new Cape());
@@ -123,6 +125,7 @@ public class ModuleManager {
 		add(new ItemZoom());
 
 		// HUD
+		add(new HudStyle());
 		add(new Watermark());
 		add(new ModuleList());
 		add(new Coordinates());

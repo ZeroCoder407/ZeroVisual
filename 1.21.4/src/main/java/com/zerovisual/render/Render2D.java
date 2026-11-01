@@ -30,6 +30,9 @@ public final class Render2D {
 	private static final ShaderProgramKey ROUNDED_RECT = new ShaderProgramKey(
 		Identifier.of(ZeroVisualClient.MOD_ID, "core/rounded_rect"), VertexFormats.POSITION_TEXTURE_COLOR, Defines.EMPTY);
 
+	/** How far the edges of a sector fade out. */
+	private static final float SECTOR_EDGE = 0.6f;
+
 	/** Global opacity multiplier, used for fade animations. */
 	private static float alpha = 1f;
 
@@ -67,6 +70,20 @@ public final class Render2D {
 
 	public static void circle(DrawContext ctx, float cx, float cy, float r, int color) {
 		rect(ctx, cx - r, cy - r, r * 2, r * 2, r, color);
+	}
+
+	/** A part of a ring: angles in radians, clockwise from the right; the color goes from the inner to the outer edge. */
+	public static void sector(DrawContext ctx, float cx, float cy, float inner, float outer, float from, float to, int innerColor, int outerColor) {
+		if (alpha <= 0) return;
+		ctx.draw();
+		Matrix4f m = ctx.getMatrices().peek().getPositionMatrix();
+		RenderSystem.setShader(net.minecraft.client.gl.ShaderProgramKeys.POSITION_COLOR);
+		RenderSystem.enableBlend();
+		RenderSystem.defaultBlendFunc();
+		BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+		sectorMesh((x, y, color) -> buffer.vertex(m, x, y, 0).color(color), cx, cy, inner, outer, from, to, applyAlpha(innerColor), applyAlpha(outerColor));
+		BufferRenderer.drawWithGlobalProgram(buffer.end());
+		RenderSystem.disableBlend();
 	}
 
 	private static void draw(DrawContext ctx, float x, float y, float w, float h, float radius, float thickness, float softness,
@@ -124,6 +141,37 @@ public final class Render2D {
 		if (alpha >= 1f) return argb;
 		int a = Math.round(((argb >>> 24) & 0xFF) * alpha);
 		return (a << 24) | (argb & 0x00FFFFFF);
+	}
+
+	/** Where a corner of {@link #sectorMesh} goes. */
+	private interface Corner {
+		void put(float x, float y, int color);
+	}
+
+	/**
+	 * Quads of a part of a ring. The geometry has no anti-aliasing of its own, so every edge fades out over
+	 * {@link #SECTOR_EDGE}; the winding is the one of vanilla GUI quads (the GUI pipeline culls back faces).
+	 */
+	private static void sectorMesh(Corner out, float cx, float cy, float inner, float outer, float from, float to, int innerColor, int outerColor) {
+		float[] radii = {inner - SECTOR_EDGE, inner, outer, outer + SECTOR_EDGE};
+		int steps = Math.max(1, (int) Math.ceil((to - from) * outer / 4));
+		for (int j = 0; j < 3; j++) {
+			for (int i = -1; i <= steps; i++) {
+				sectorCorner(out, cx, cy, radii, j, i, steps, from, to, innerColor, outerColor);
+				sectorCorner(out, cx, cy, radii, j, i + 1, steps, from, to, innerColor, outerColor);
+				sectorCorner(out, cx, cy, radii, j + 1, i + 1, steps, from, to, innerColor, outerColor);
+				sectorCorner(out, cx, cy, radii, j + 1, i, steps, from, to, innerColor, outerColor);
+			}
+		}
+	}
+
+	private static void sectorCorner(Corner out, float cx, float cy, float[] radii, int j, int i, int steps, float from, float to, int innerColor, int outerColor) {
+		float r = radii[j];
+		float side = SECTOR_EDGE / Math.max(r, 1);
+		float angle = i < 0 ? from - side : i > steps ? to + side : from + (to - from) * i / steps;
+		int color = ColorUtil.lerp(innerColor, outerColor, Math.max(0, Math.min(1, (r - radii[1]) / (radii[2] - radii[1]))));
+		boolean edge = j == 0 || j == 3 || i < 0 || i > steps;
+		out.put(cx + (float) Math.cos(angle) * r, cy + (float) Math.sin(angle) * r, edge ? color & 0x00FFFFFF : color);
 	}
 
 	// ---- Text ----

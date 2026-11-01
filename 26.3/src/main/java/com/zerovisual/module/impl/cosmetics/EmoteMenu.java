@@ -26,9 +26,12 @@ public class EmoteMenu extends Module {
 	public final BooleanSetting thirdPerson = add(new BooleanSetting("Third person", true));
 	public final BooleanSetting sync = add(new BooleanSetting("Show to other players", true));
 
+	private static final int INVITE_RANGE = 24;
+
 	/** The camera to go back to after an emote, null when the emote did not change it. */
 	private CameraType savedCamera;
 	private boolean wasPlaying;
+	private final java.util.Set<java.util.UUID> invited = new java.util.HashSet<>();
 
 	public EmoteMenu() {
 		super("EmoteMenu", "Emote wheel: dances and gestures (B by default), players with ZeroVisual see them", Category.COSMETICS);
@@ -93,6 +96,21 @@ public class EmoteMenu extends Module {
 			savedCamera = null;
 		}
 		wasPlaying = playing;
+		inviteToGroups();
+	}
+
+	/** A card when somebody close by starts a group dance: choosing it in the wheel joins them. */
+	private void inviteToGroups() {
+		Emote mine = EmoteManager.current(mc.player.getUUID());
+		for (var player : mc.level.players()) {
+			java.util.UUID id = player.getUUID();
+			Emote emote = EmoteManager.current(id);
+			if (emote == null || !emote.group()) invited.remove(id);
+			else if (player != mc.player && (mine == null || !mine.group()) && mc.player.distanceToSqr(player) < INVITE_RANGE * INVITE_RANGE && invited.add(id)) {
+				com.zerovisual.ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.Notifications.class)
+					.notify(net.minecraft.client.resources.language.I18n.get("zerovisual.emote.group"), net.minecraft.client.resources.language.I18n.get("zerovisual.emote.invite", player.getName().getString()), true);
+			}
+		}
 	}
 
 	private boolean movementPressed() {

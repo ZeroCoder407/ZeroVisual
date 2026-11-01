@@ -163,6 +163,8 @@ public class ZeroVisualClient implements ClientModInitializer {
 			if (hitboxColor.isEnabled()) hitboxColor.render(context);
 			FireFlies fireFlies = modules.get(FireFlies.class);
 			if (fireFlies.isEnabled()) fireFlies.render(context);
+			com.zerovisual.module.impl.visuals.Seasons seasons = modules.get(com.zerovisual.module.impl.visuals.Seasons.class);
+			if (seasons.isEnabled()) seasons.render(context);
 			Halo halo = modules.get(Halo.class);
 			if (halo.isEnabled()) halo.render(context);
 			KillEffect killEffect = modules.get(KillEffect.class);

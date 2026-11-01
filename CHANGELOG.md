@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+- **Seasons**: leaves, snow, sakura petals or summer fluff fall around you, drift in the wind and settle on the ground. Auto follows the real season.
+- **EmoteMenu**: the wheel is redrawn in the manner of the GTA weapon wheel: a translucent ring over the blurred game, the name and number in the middle.
+- **EmoteMenu**: Group dance, tracked from a real video. Everyone who picks it dances to one beat, and players close by get a notification. It is purely visual.
+- **CustomSky**: new lightness setting for the Rifts colors, from black to white.
+- Fixed Nametags and other world text looking dim on 1.21.11 and 26.3: the background was drawn over the text.
+- **Minecraft 1.21.11**: ZeroVisual now comes for 1.21.4, 1.21.11 and 26.3, with the same features.
+- **HudStyle**: background, lightness (from black to white), opacity, outline, corners and shadow of all HUD cards in one place.
+- **Potions**: effect icons.
+
 ## 0.4.0
 
 - **EmoteMenu**: an emote wheel (B by default) with 10 emotes: wave, clap, sit, lie down, Rat dance, Rampage, Funked up, the Russian squat dance, flex and moonwalk. Rat dance, Rampage and Funked up are tracked from real dancers. Arms, legs and the body bend in the middle as one solid piece. Players with ZeroVisual on the same server see your emotes; this can be turned off in the module.

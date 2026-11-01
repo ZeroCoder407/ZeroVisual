@@ -16,7 +16,8 @@ public final class Emotes {
 		new Emote("funk", "Funked up", DanceTracks.FUNK.duration(), true, DanceTracks.FUNK),
 		new Emote("squat", "Prisyadka", 4.8f, true, squatDance()),
 		new Emote("flex", "Flex", 3f, false, Emotes::flex),
-		new Emote("moonwalk", "Moonwalk", 4f, false, Emotes::moonwalk)
+		new Emote("moonwalk", "Moonwalk", 4f, false, Emotes::moonwalk),
+		new Emote("group", "Group dance", DanceTracks.GROUP.duration(), true, true, DanceTracks.GROUP)
 	);
 
 	private Emotes() {

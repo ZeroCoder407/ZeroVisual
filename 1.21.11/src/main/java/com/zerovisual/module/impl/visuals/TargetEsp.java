@@ -1,0 +1,117 @@
+package com.zerovisual.module.impl.visuals;
+
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.zerovisual.fx.Shapes;
+import com.zerovisual.gui.Theme;
+import com.zerovisual.module.Category;
+import com.zerovisual.module.Module;
+import com.zerovisual.render.Anim;
+import com.zerovisual.render.WorldRender;
+import com.zerovisual.render.ColorUtil;
+import com.zerovisual.render.Render2D;
+import com.zerovisual.setting.ModeSetting;
+import com.zerovisual.setting.NumberSetting;
+import com.zerovisual.util.TargetTracker;
+import com.zerovisual.render.WorldContext;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+
+/**
+ * Marker on the entity you are fighting (the last one you hit).
+ * Depth-tested: it does not show through walls.
+ */
+public class TargetEsp extends Module {
+	public final ModeSetting style = add(new ModeSetting("Style", "Ring", "Ring", "Marker", "Crystals", "Pulse"));
+	public final NumberSetting keepTime = add(new NumberSetting("Keep time", 3, 1, 10, 0.5));
+	public final NumberSetting speed = add(new NumberSetting("Speed", 1, 0.3, 3, 0.1));
+
+	private static final int CRYSTALS = 5;
+
+	private final Anim visible = new Anim(10f, 0f);
+	private LivingEntity shown;
+
+	public TargetEsp() {
+		super("TargetESP", "Marker on the target you are hitting (not through walls)", Category.VISUALS);
+	}
+
+	public void render(WorldContext context) {
+		LivingEntity target = TargetTracker.get(Math.round(keepTime.get() * 1000));
+		if (target != null) shown = target;
+		float v = visible.update(target != null);
+		if (v <= 0.01f || shown == null) {
+			if (v <= 0.01f) shown = null;
+			return;
+		}
+
+		float tickDelta = context.tickCounter().getGameTimeDeltaPartialTick(true);
+		Vec3 cam = context.camera().position();
+		Vec3 pos = shown.getPosition(tickDelta);
+		float time = (System.currentTimeMillis() % 100_000L) / 1000f * speed.getFloat();
+		int accent = Theme.accent();
+		int light = Theme.accentLight();
+
+		if (style.is("Crystals") || style.is("Pulse")) {
+			renderNew(context, pos, cam, time, v, accent, light);
+			return;
+		}
+
+
+		if (style.is("Ring")) {
+			float radius = shown.getBbWidth() * 0.75f + 0.15f;
+			// the ring travels up and down the body
+			float wave = (float) (Math.sin(time * 2.2) * 0.5 + 0.5);
+			float y = (float) (pos.y - cam.y) + 0.05f + wave * (shown.getBbHeight() - 0.1f);
+			Matrix4f m = new Matrix4f()
+				.translate((float) (pos.x - cam.x), y, (float) (pos.z - cam.z))
+				.rotateX((float) Math.toRadians(90));
+			int a = ColorUtil.withAlpha(accent, v), b = ColorUtil.withAlpha(light, v);
+			int ga = ColorUtil.withAlpha(accent, 0.3f * v), gb = ColorUtil.withAlpha(light, 0.3f * v);
+			WorldRender.shape(m, -radius, -radius, radius * 2, radius * 2, radius, 0, 0.12f, ga, gb, gb, ga);
+			WorldRender.shape(m, -radius, -radius, radius * 2, radius * 2, radius, 0.035f, 0, a, b, b, a);
+		} else {
+			float size = Math.max(0.35f, shown.getBbHeight() * 0.3f) * (0.9f + 0.1f * v);
+			Matrix4f m = new Matrix4f()
+				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y) + shown.getBbHeight() / 2f, (float) (pos.z - cam.z))
+				.rotate(context.camera().rotation())
+				.rotateZ(time * 1.5f);
+			int a = ColorUtil.withAlpha(accent, v), b = ColorUtil.withAlpha(light, v);
+			WorldRender.shape(m, -size, -size, size * 2, size * 2, size * 0.35f, 0, size * 0.25f,
+				ColorUtil.withAlpha(accent, 0.25f * v), ColorUtil.withAlpha(light, 0.25f * v),
+				ColorUtil.withAlpha(accent, 0.25f * v), ColorUtil.withAlpha(light, 0.25f * v));
+			WorldRender.shape(m, -size, -size, size * 2, size * 2, size * 0.35f, size * 0.12f, 0, a, b, a, b);
+		}
+
+	}
+
+	private void renderNew(WorldContext context, Vec3 pos, Vec3 cam, float time, float v, int accent, int light) {
+		if (style.is("Crystals")) {
+			renderCrystals(pos, cam, time, v, accent, light);
+			return;
+		}
+		if (style.is("Pulse")) {
+			Matrix4f m = new Matrix4f()
+				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y) + shown.getBbHeight() + 0.42f, (float) (pos.z - cam.z))
+				.rotate(context.camera().rotation());
+			// the hit: the line swings hard and turns red, then calms down as the hurt time runs out
+			float kick = shown.hurtTime / 10f;
+			int color = ColorUtil.withAlpha(ColorUtil.lerp(accent, 0xFFFF3050, kick), v);
+			float t = time;
+			WorldRender.quads(q -> Shapes.pulse(q, m, 1.1f, 0.22f, t, kick, color));
+			return;
+		}
+	}
+
+	/** Crystals circling the target, each bobbing at its own pace. */
+	private void renderCrystals(Vec3 pos, Vec3 cam, float time, float v, int accent, int light) {
+		float radius = shown.getBbWidth() * 0.75f + 0.4f;
+		for (int i = 0; i < CRYSTALS; i++) {
+			double angle = time * 1.5 + i * 2 * Math.PI / CRYSTALS;
+			float x = (float) (pos.x - cam.x + Math.cos(angle) * radius), z = (float) (pos.z - cam.z + Math.sin(angle) * radius);
+			float y = (float) (pos.y - cam.y) + shown.getBbHeight() * (0.5f + 0.34f * (float) Math.sin(time * 1.9 + i * 1.3));
+			Matrix4f m = new Matrix4f().translate(x, y, z).rotateY(time * 2.4f + i).rotateZ(0.25f);
+			int top = ColorUtil.withAlpha(light, 0.95f * v), bottom = ColorUtil.withAlpha(accent, 0.85f * v);
+			WorldRender.quads(q -> Shapes.crystal(q, m, 0.13f, top, bottom));
+		}
+	}
+}

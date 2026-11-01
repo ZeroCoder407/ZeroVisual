@@ -11,11 +11,14 @@ public final class EmoteManager {
 	private static final class Active {
 		final Emote emote;
 		final long start;
+		/** Where the animation counts from: a group dance joins the beat of the others, the fade in still starts now. */
+		final long beat;
 		volatile long stopAt;
 
-		Active(Emote emote, long start) {
+		Active(Emote emote, long start, long beat) {
 			this.emote = emote;
 			this.start = start;
+			this.beat = beat;
 		}
 	}
 
@@ -28,7 +31,18 @@ public final class EmoteManager {
 	}
 
 	public static void play(UUID player, Emote emote) {
-		PLAYING.put(player, new Active(emote, System.currentTimeMillis()));
+		long now = System.currentTimeMillis();
+		PLAYING.put(player, new Active(emote, now, emote.group() ? groupBeat(player, emote, now) : now));
+	}
+
+	/** Every client works this out from its own clock, so the dancers it shows are together. */
+	private static long groupBeat(UUID player, Emote emote, long now) {
+		long beat = now;
+		for (Map.Entry<UUID, Active> entry : PLAYING.entrySet()) {
+			Active a = entry.getValue();
+			if (!entry.getKey().equals(player) && a.emote == emote && a.stopAt == 0) beat = Math.min(beat, a.beat);
+		}
+		return beat;
 	}
 
 	/** Fades out from here. */
@@ -53,6 +67,7 @@ public final class EmoteManager {
 		if (a == null) return 0;
 		long now = System.currentTimeMillis();
 		float t = frozenAt >= 0 ? frozenAt : (now - a.start) / 1000f;
+		float beat = frozenAt >= 0 ? frozenAt : (now - a.beat) / 1000f;
 		Emote e = a.emote;
 		if (a.stopAt == 0 && !e.loop() && t >= e.duration()) a.stopAt = now;
 		float weight = Math.min(1, t / FADE_IN);
@@ -65,7 +80,7 @@ public final class EmoteManager {
 			weight = Math.min(weight, 1 - fade);
 		}
 		pose.reset();
-		e.animation().sample(e.loop() ? t % e.duration() : Math.min(t, e.duration()), pose);
+		e.animation().sample(e.loop() ? beat % e.duration() : Math.min(beat, e.duration()), pose);
 		return weight * weight * (3 - 2 * weight);
 	}
 }

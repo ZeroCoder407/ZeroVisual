@@ -71,7 +71,8 @@ public class Keystrokes extends HudModule {
 		int accent = Theme.accent();
 
 		Render2D.shadow(ctx, x, y + 1, w, h, 5, 4, 0x50000000);
-		Render2D.rect(ctx, x, y, w, h, 5, ColorUtil.lerp(0xC00D0D12, ColorUtil.withAlpha(accent, 0.85f), p));
+		Render2D.rect(ctx, x, y, w, h, 5, ColorUtil.lerp(Theme.cardColor(), ColorUtil.withAlpha(accent, 0.85f), p));
+		Theme.cardEdge(ctx, x, y, w, h, 5);
 		int textColor = ColorUtil.lerp(Theme.TEXT_MUTED, 0xFFFFFFFF, p);
 
 		if (label == null) {

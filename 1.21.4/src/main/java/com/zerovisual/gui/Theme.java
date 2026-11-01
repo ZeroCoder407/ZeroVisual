@@ -1,6 +1,7 @@
 package com.zerovisual.gui;
 
 import com.zerovisual.ZeroVisualClient;
+import com.zerovisual.module.impl.hud.HudStyle;
 import com.zerovisual.module.impl.utilities.ClickGui;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
@@ -33,15 +34,44 @@ public final class Theme {
 		return ColorUtil.brighten(accent(), 1.35f);
 	}
 
-	/** Dark translucent card with a soft shadow, used by HUD elements. */
-	public static void card(DrawContext ctx, float x, float y, float w, float h) {
-		card(ctx, x, y, w, h, 0xE0 / 255f);
+	private static final float CARD_OPACITY = 0.88f;
+
+	private static HudStyle style() {
+		return ZeroVisualClient.get().modules().get(HudStyle.class);
 	}
 
-	/** Card with a custom background opacity (0..1); the shadow fades with it. */
+	private static int cardBackground(HudStyle style) {
+		return ColorUtil.lightness(style.background.get(), style.lightness.getFloat());
+	}
+
+	/** Background color of HUD cards at the opacity set in HudStyle. */
+	public static int cardColor() {
+		HudStyle style = style();
+		return ColorUtil.withAlpha(cardBackground(style), style.opacity.getFloat());
+	}
+
+	/** The HudStyle outline around a card. */
+	public static void cardEdge(DrawContext ctx, float x, float y, float w, float h, float radius) {
+		HudStyle style = style();
+		if (style.outline.get()) {
+			Render2D.outline(ctx, x, y, w, h, radius, style.outlineWidth.getFloat(), style.outlineAccent.get() ? accent() : style.outlineColor.get() | 0xFF000000);
+		}
+	}
+
+	/** Card in the style set in HudStyle, used by HUD elements. */
+	public static void card(DrawContext ctx, float x, float y, float w, float h) {
+		card(ctx, x, y, w, h, CARD_OPACITY);
+	}
+
+	/** Card with its own background opacity (0..1), scaled by HudStyle around the default; the shadow fades with it. */
 	public static void card(DrawContext ctx, float x, float y, float w, float h, float opacity) {
-		if (opacity <= 0.01f) return;
-		Render2D.shadow(ctx, x, y + 1, w, h, RADIUS, 6, ColorUtil.fade(SHADOW, Math.min(1f, opacity / (0xE0 / 255f))));
-		Render2D.rect(ctx, x, y, w, h, RADIUS, ColorUtil.withAlpha(0xFF0D0D12, opacity));
+		HudStyle style = style();
+		float alpha = Math.min(1, opacity * style.opacity.getFloat() / CARD_OPACITY);
+		float radius = style.radius.getFloat();
+		if (alpha > 0.01f) {
+			if (style.shadow.get()) Render2D.shadow(ctx, x, y + 1, w, h, radius, 6, ColorUtil.fade(SHADOW, alpha));
+			Render2D.rect(ctx, x, y, w, h, radius, ColorUtil.withAlpha(cardBackground(style), alpha));
+		}
+		cardEdge(ctx, x, y, w, h, radius);
 	}
 }

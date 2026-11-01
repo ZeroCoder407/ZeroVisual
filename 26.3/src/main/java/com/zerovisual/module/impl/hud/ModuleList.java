@@ -73,7 +73,7 @@ public class ModuleList extends HudModule {
 		int accentLight = Theme.accentLight();
 
 		if (placeholder) {
-			Render2D.rect(ctx, x, y, maxW, ROW_H, 3, 0xD00D0D12);
+			Render2D.rect(ctx, x, y, maxW, ROW_H, 3, Theme.cardColor());
 			Render2D.text(ctx, getName(), x + 5, y + 3, Theme.TEXT_DIM);
 			return;
 		}
@@ -87,7 +87,7 @@ public class ModuleList extends HudModule {
 
 			float prev = Render2D.getAlpha();
 			Render2D.setAlpha(t);
-			Render2D.rect(ctx, rx, y, w, ROW_H, 3, 0xD00D0D12);
+			Render2D.rect(ctx, rx, y, w, ROW_H, 3, Theme.cardColor());
 			float barX = rightAligned ? rx + w - 2 : rx;
 			Render2D.gradientV(ctx, barX, y + 2, 2, ROW_H - 4, 1, accentLight, accent);
 			Render2D.text(ctx, module.getName(), rx + (rightAligned ? 4 : 6), y + 3, ColorUtil.lerp(Theme.TEXT, accentLight, 0.15f));

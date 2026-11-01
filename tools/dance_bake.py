@@ -1,6 +1,6 @@
 """Turns tracked dances (dance_track.py) into the joint angles of the player model and writes DanceTracks.java.
 
-python dance_bake.py <dir with Rat.npz, Rampage.npz, Funked_up.npz> <out DanceTracks.java>
+python dance_bake.py <dir with Rat.npz, Rampage.npz, Funked_up.npz, Group.npz> <out DanceTracks.java>
 
 Model axes match the tracker: x to the left of the dancer, y down, z to their back.
 """
@@ -16,6 +16,7 @@ DANCES = [
     ('RAT', 'Rat', (2.2, 2.9), (8.6, 9.5), 0.3, False),
     ('RAMPAGE', 'Rampage', (0.0, 1.2), (12.4, 14.8), 0.4, False),
     ('FUNK', 'Funked_up', (0.5, 1.0), None, 0.2, True),
+    ('GROUP', 'Group', (0.0, 0.5), (3.0, 3.6), 0.35, False),
 ]
 FUNK_PERIOD = 8.83
 

@@ -95,6 +95,30 @@ public final class DevScreenshots {
 		step++;
 	}
 
+	// each season gets 15 seconds, so that a carpet has time to settle
+	private static final int SEASONS_STEP = 218;
+
+	private static void seasons(MinecraftClient mc) {
+		String[] modes = {"Autumn", "Winter", "Spring", "Summer"};
+		int n = step - SEASONS_STEP, season = n / 10;
+		var module = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Seasons.class);
+		if (season >= modes.length) {
+			module.setEnabled(false);
+			mc.scheduleStop();
+			return;
+		}
+		if (n % 10 == 0) {
+			mc.options.hudHidden = true;
+			mc.options.setPerspective(net.minecraft.client.option.Perspective.FIRST_PERSON);
+			mc.player.setPitch(18);
+			runCommand(mc, "time set noon");
+			module.mode.set(modes[season]);
+			module.setEnabled(true);
+		}
+		if (n % 10 == 9) timedShots.put(ticks + 5, "zv_seasons_" + modes[season].toLowerCase());
+		step++;
+	}
+
 	private static void world(MinecraftClient mc) {
 		if (mc.world == null || mc.player == null) return;
 		ticks++;
@@ -114,6 +138,10 @@ public final class DevScreenshots {
 		}
 		if (timedShots.containsKey(ticks)) shot(mc, timedShots.remove(ticks));
 		if (ticks < 100 || ticks % 30 != 0) return;
+		if (step >= SEASONS_STEP) {
+			seasons(mc);
+			return;
+		}
 
 		switch (step) {
 			case 0 -> {
@@ -585,6 +613,34 @@ public final class DevScreenshots {
 				timedShots.put(ticks + 6, "zv_fx_rifts_b");
 			}
 			case 117 -> mc.options.hudHidden = false;
+			case 118 -> {
+				// HudStyle and the effect icons of Potions
+				mc.setScreen(null);
+				mc.options.hudHidden = false;
+				String who = mc.player.getName().getString();
+				runCommand(mc, "effect give " + who + " minecraft:speed 300 1");
+				runCommand(mc, "effect give " + who + " minecraft:strength 300 0");
+				runCommand(mc, "effect give " + who + " minecraft:regeneration 300 2");
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.Potions.class).setEnabled(true);
+				timedShots.put(ticks + 25, "zv_hud_default");
+			}
+			case 119 -> {
+				var style = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.HudStyle.class);
+				style.outline.set(true);
+				style.outlineWidth.set(1.5);
+				style.radius.set(2.0);
+				style.opacity.set(0.5);
+				style.background.set(0xFF1E3A8A);
+				timedShots.put(ticks + 6, "zv_hud_custom");
+			}
+			case 120 -> {
+				var style = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.HudStyle.class);
+				style.outline.set(false);
+				style.outlineWidth.set(1.0);
+				style.radius.set(6.0);
+				style.opacity.set(0.88);
+				style.background.set(0xFF0D0D12);
+			}
 			default -> mc.scheduleStop();
 		}
 		step++;

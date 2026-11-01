@@ -94,6 +94,30 @@ public final class DevScreenshots {
 		step++;
 	}
 
+	// each season gets 15 seconds, so that a carpet has time to settle
+	private static final int SEASONS_STEP = 218;
+
+	private static void seasons(Minecraft mc) {
+		String[] modes = {"Autumn", "Winter", "Spring", "Summer"};
+		int n = step - SEASONS_STEP, season = n / 10;
+		var module = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Seasons.class);
+		if (season >= modes.length) {
+			module.setEnabled(false);
+			mc.stop();
+			return;
+		}
+		if (n % 10 == 0) {
+			hideGui(mc, true);
+			mc.options.setCameraType(CameraType.FIRST_PERSON);
+			mc.player.setXRot(18);
+			runCommand(mc, "time set noon");
+			module.mode.set(modes[season]);
+			module.setEnabled(true);
+		}
+		if (n % 10 == 9) timedShots.put(ticks + 5, "zv_seasons_" + modes[season].toLowerCase());
+		step++;
+	}
+
 	private static void world(Minecraft mc) {
 		if (mc.level == null || mc.player == null) return;
 		ticks++;
@@ -113,6 +137,10 @@ public final class DevScreenshots {
 		}
 		if (timedShots.containsKey(ticks)) shot(mc, timedShots.remove(ticks));
 		if (ticks < 100 || ticks % 30 != 0) return;
+		if (step >= SEASONS_STEP) {
+			seasons(mc);
+			return;
+		}
 
 		switch (step) {
 			case 0 -> {
@@ -835,13 +863,75 @@ public final class DevScreenshots {
 				com.zerovisual.emote.EmoteManager.frozenAt = -1;
 				timedShots.put(ticks + 8, "zv_wings_rest");
 			}
-			case 204 -> hideGui(mc, false);
-			case 179 -> {
-				var sky = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.CustomSky.class);
-				sky.riftColor1.set(0xFF8B5CF6);
-				sky.riftColor2.set(0xFF22D3EE);
-				sky.riftColor3.set(0xFFFF4D8D);
+			case 204 -> {
+				// promo shot for the 0.4.0 banner: a dance under the rifts
+				hideGui(mc, true);
+				var modules = ZeroVisualClient.get().modules();
+				for (var m : modules.getModules()) {
+					String n = m.getName();
+					if (n.equals("Nametags") || n.equals("Pet") || n.equals("HitParticles")) m.setEnabled(false);
+				}
+				var sky = modules.get(com.zerovisual.module.impl.visuals.CustomSky.class);
+				sky.setEnabled(true);
+				sky.mode.set("Rifts");
+				var wings = modules.get(com.zerovisual.module.impl.cosmetics.Wings.class);
+				wings.setEnabled(true);
+				wings.style.set("Dragon");
+				modules.get(com.zerovisual.module.impl.visuals.ChinaHat.class).setEnabled(true);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "kill @e[type=item]");
+				runCommand(mc, "kill @e[type=pig]");
+				runCommand(mc, "kill @e[type=husk]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "item replace entity " + who + " weapon.offhand with air");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(-20);
+				mc.player.yBodyRot = mc.player.yBodyRotO = mc.player.getYRot();
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("rampage"));
+			}
+			case 205, 206 -> {
+				// the poof of the removed mobs fades; a narrow view brings the dancer close
+				mc.options.fov().set(52);
+				mc.player.setXRot(16);
+			}
+			case 207, 208, 209 -> {
+				float[] moments = {7.3f, 9.97f, 3.6f};
+				com.zerovisual.emote.EmoteManager.frozenAt = moments[step - 207];
+				timedShots.put(ticks + 10, "zv_promo040_" + (step - 207));
+			}
+			case 210 -> {
+				com.zerovisual.emote.EmoteManager.frozenAt = -1;
+				com.zerovisual.emote.EmoteManager.clear();
+				mc.options.fov().set(70);
 				hideGui(mc, false);
+			}
+			case 211 -> {
+				// HudStyle and the effect icons of Potions
+				mc.gui.setScreen(null);
+				hideGui(mc, false);
+				String who = mc.player.getName().getString();
+				runCommand(mc, "effect give " + who + " minecraft:speed 300 1");
+				runCommand(mc, "effect give " + who + " minecraft:strength 300 0");
+				runCommand(mc, "effect give " + who + " minecraft:regeneration 300 2");
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.Potions.class).setEnabled(true);
+				timedShots.put(ticks + 25, "zv_hud_default");
+			}
+			case 212 -> {
+				var style = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.HudStyle.class);
+				style.outline.set(true);
+				style.outlineWidth.set(1.5);
+				style.radius.set(2.0);
+				style.opacity.set(0.5);
+				style.background.set(0xFF1E3A8A);
+				timedShots.put(ticks + 6, "zv_hud_custom");
+			}
+			case 213 -> {
+				var style = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.hud.HudStyle.class);
+				style.outline.set(false);
+				style.outlineWidth.set(1.0);
+				style.radius.set(6.0);
+				style.opacity.set(0.88);
+				style.background.set(0xFF0D0D12);
 			}
 			default -> mc.stop();
 		}

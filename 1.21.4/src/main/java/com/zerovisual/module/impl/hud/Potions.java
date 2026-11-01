@@ -15,9 +15,11 @@ import java.util.List;
 
 /** Card with active effects and their remaining time. */
 public class Potions extends HudModule {
+	private static final int ICON = 11;
 	private static final String[] ROMAN = {"", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX", " X"};
 
 	public final BooleanSetting hideVanilla = add(new BooleanSetting("Hide vanilla icons", true));
+	public final BooleanSetting icons = add(new BooleanSetting("Effect icons", true));
 
 	public Potions() {
 		super("Potions", "Active effects and their time");
@@ -43,6 +45,7 @@ public class Potions extends HudModule {
 
 		List<String[]> rows = new ArrayList<>();
 		List<Integer> colors = new ArrayList<>();
+		List<net.minecraft.registry.entry.RegistryEntry<StatusEffect>> kinds = new ArrayList<>();
 		float nameW = 0, timeW = 0;
 		for (StatusEffectInstance effect : effects) {
 			StatusEffect type = effect.getEffectType().value();
@@ -51,6 +54,7 @@ public class Potions extends HudModule {
 			String time = formatDuration(effect);
 			rows.add(new String[]{name, time});
 			colors.add(type.getColor() | 0xFF000000);
+			kinds.add(effect.getEffectType());
 			nameW = Math.max(nameW, Render2D.textWidth(name));
 			timeW = Math.max(timeW, Render2D.textWidth(time));
 		}
@@ -63,8 +67,10 @@ public class Potions extends HudModule {
 			nameW = Render2D.textWidth(I18n.translate("zerovisual.hud.potions.empty"));
 		}
 
-		float rowH = 12;
-		float w = Math.max(90, 8 + 8 + nameW + 14 + timeW + 8);
+		boolean showIcons = icons.get() && !kinds.isEmpty();
+		float rowH = showIcons ? ICON + 2 : 12;
+		float textX = showIcons ? 8 + ICON : 16;
+		float w = Math.max(90, textX + nameW + 14 + timeW + 8);
 		float h = 20 + rows.size() * rowH + 4;
 		float[] pos = place(ctx, w, h);
 		float x = pos[0];
@@ -78,12 +84,17 @@ public class Potions extends HudModule {
 
 		float ry = y + 21;
 		for (int i = 0; i < rows.size(); i++) {
-			Render2D.circle(ctx, x + 10, ry + 3.5f, 2f, colors.get(i));
-			Render2D.text(ctx, rows.get(i)[0], x + 16, ry, Theme.TEXT_MUTED);
+			if (showIcons) icon(ctx, kinds.get(i), x + 5, ry - 2);
+			else Render2D.circle(ctx, x + 10, ry + 3.5f, 2f, colors.get(i));
+			Render2D.text(ctx, rows.get(i)[0], x + textX, ry, Theme.TEXT_MUTED);
 			String time = rows.get(i)[1];
 			Render2D.text(ctx, time, x + w - 8 - Render2D.textWidth(time), ry, Theme.TEXT_DIM);
 			ry += rowH;
 		}
+	}
+
+	private void icon(DrawContext ctx, net.minecraft.registry.entry.RegistryEntry<StatusEffect> effect, float x, float y) {
+		ctx.drawSpriteStretched(net.minecraft.client.render.RenderLayer::getGuiTextured, mc.getStatusEffectSpriteManager().getSprite(effect), (int) x, (int) y, ICON, ICON);
 	}
 
 	private static String formatDuration(StatusEffectInstance effect) {

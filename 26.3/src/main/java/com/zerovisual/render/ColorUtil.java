@@ -25,6 +25,12 @@ public final class ColorUtil {
 	}
 
 	/** Shifts brightness: factor > 1 lightens, < 1 darkens. */
+	/** Moves an opaque color through its lightness: black at 0, the color itself at 0.5, white at 1. */
+	public static int lightness(int rgb, float lightness) {
+		int color = rgb | 0xFF000000;
+		return lightness < 0.5f ? lerp(0xFF000000, color, lightness * 2) : lerp(color, 0xFFFFFFFF, lightness * 2 - 1);
+	}
+
 	public static int brighten(int argb, float factor) {
 		int r = Math.min(255, Math.round(((argb >> 16) & 0xFF) * factor));
 		int g = Math.min(255, Math.round(((argb >> 8) & 0xFF) * factor));

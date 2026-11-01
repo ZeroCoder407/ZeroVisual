@@ -11,6 +11,11 @@ jobs:
         include:
           - project: '1.21.4'
             java: '21'
+          # Loom needs Java 25 to run, the mod itself is compiled for Java 21
+          - project: '1.21.11'
+            java: |
+              21
+              25
           - project: '26.3'
             java: '25'
     defaults:
