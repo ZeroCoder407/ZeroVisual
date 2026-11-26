@@ -1,0 +1,12 @@
+[
+  {
+    "modid": "zerovisual",
+    "name": "ZeroVisual",
+    "description": "Free open-source visual client: HUD, visuals, cosmetics and emotes. No cheats.",
+    "version": "${version}",
+    "mcversion": "${minecraft_version}",
+    "url": "https://github.com/ZeroCoder407/ZeroVisual",
+    "authorList": ["ZeroCoder407"],
+    "logoFile": "assets/zerovisual/icon.png"
+  }
+]

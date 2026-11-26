@@ -39,7 +39,14 @@ public class Halo extends Module {
 				.translate((float) (pos.x - cam.x), (float) (pos.y - cam.y), (float) (pos.z - cam.z))
 				.mul(EmoteAnchor.head(player.getUuid(), bodyYaw, bodyYaw, player.getHeight(), 0.2f + bob))
 				.rotateX((float) Math.toRadians(90));
-			WorldRender.ring(m, radius.getFloat(), 0.045f, Theme.accentLight(), Theme.accent(), 0.08f);
+			// a soft glow in the plane of the ring, then the ring itself as a lit tube
+			int glow = com.zerovisual.render.ColorUtil.fade(Theme.accent(), 0.35f);
+			float r = radius.getFloat();
+			com.zerovisual.render.Render2D.shape(m, -r - 0.08f, -r - 0.08f, (r + 0.08f) * 2, (r + 0.08f) * 2, r + 0.08f, 0.16f, 0.07f, glow, glow, glow, glow);
+			// solid: it hides its own far side
+			com.mojang.blaze3d.systems.RenderSystem.depthMask(true);
+			WorldRender.quads(q -> com.zerovisual.fx.HaloRing.emit(q, m, r, 0.032f, Theme.accentLight(), Theme.accent()));
+			com.mojang.blaze3d.systems.RenderSystem.depthMask(false);
 		}
 		WorldRender.end();
 	}

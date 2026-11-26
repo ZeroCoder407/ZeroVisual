@@ -1,6 +1,7 @@
 package com.zerovisual.util;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.zerovisual.emote.EmotePose;
 import com.zerovisual.mixin.ModelPartAccessor;
 import net.minecraft.client.model.HumanoidModel;
@@ -8,6 +9,7 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
+import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -152,9 +154,33 @@ public final class EmoteRig {
 	private static ModelPart.Cube cube(List<ModelPart.Polygon> polygons) {
 		Set<Direction> faces = EnumSet.noneOf(Direction.class);
 		for (int i = 0; i < polygons.size(); i++) faces.add(Direction.values()[i]);
-		ModelPart.Cube cube = new ModelPart.Cube(0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, false, 64, 64, faces);
+		Cube cube = new Cube(faces);
 		for (int i = 0; i < polygons.size(); i++) cube.polygons[i] = polygons.get(i);
 		return cube;
+	}
+
+	/**
+	 * A cube drawn from its faces as they are now. Sodium draws a cube from a copy it makes when the cube is created,
+	 * which would ignore the faces put in here: the cut limbs and the bands came out invisible.
+	 */
+	private static final class Cube extends ModelPart.Cube {
+		Cube(Set<Direction> faces) {
+			super(0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, false, 64, 64, faces);
+		}
+
+		@Override
+		public void compile(PoseStack.Pose pose, VertexConsumer buffer, int light, int overlay, int color) {
+			Matrix4f matrix = pose.pose();
+			Vector3f scratch = new Vector3f();
+			for (ModelPart.Polygon polygon : polygons) {
+				Vector3f normal = pose.transformNormal(polygon.normal(), scratch);
+				float nx = normal.x(), ny = normal.y(), nz = normal.z();
+				for (ModelPart.Vertex vertex : polygon.vertices()) {
+					Vector3f pos = matrix.transformPosition(vertex.worldX(), vertex.worldY(), vertex.worldZ(), scratch);
+					buffer.addVertex(pos.x(), pos.y(), pos.z(), color, vertex.u(), vertex.v(), overlay, light, nx, ny, nz);
+				}
+			}
+		}
 	}
 
 	private static ModelPart.Polygon shifted(ModelPart.Polygon polygon, float dy) {

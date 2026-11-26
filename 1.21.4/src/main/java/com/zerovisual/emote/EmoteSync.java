@@ -20,7 +20,7 @@ import java.util.concurrent.CompletionStage;
  */
 public final class EmoteSync {
 	/** The relay (see relay/); -Dzerovisual.relay points a test build at a local one, empty keeps emotes local. */
-	private static final String RELAY_URL = System.getProperty("zerovisual.relay", "wss://zerovisual-relay.zerovisual.workers.dev");
+	public static final String RELAY_URL = System.getProperty("zerovisual.relay", "wss://zerovisual-relay.zerovisual.workers.dev");
 	private static final long RETRY_MS = 15_000;
 
 	private static volatile String room;
@@ -28,6 +28,8 @@ public final class EmoteSync {
 	private static volatile WebSocket socket;
 	private static volatile boolean connecting;
 	private static volatile long nextTry;
+	/** Goes up on every new connection: the room forgot what this player shared before. */
+	private static volatile int generation;
 
 	private EmoteSync() {
 	}
@@ -38,6 +40,7 @@ public final class EmoteSync {
 		self = player;
 		if (wanted == null ? room != null : !wanted.equals(room)) {
 			room = wanted;
+			com.zerovisual.music.MusicRoom.clear();
 			WebSocket old = socket;
 			socket = null;
 			if (old != null) old.abort();
@@ -54,6 +57,16 @@ public final class EmoteSync {
 		send("{\"t\":\"stop\"}");
 	}
 
+	/** Goes up with every new connection to the room. */
+	public static int generation() {
+		return generation;
+	}
+
+	/** A message of another feature through the same room (see MusicRoom). */
+	public static void sendRaw(String text) {
+		send(text);
+	}
+
 	private static void send(String text) {
 		WebSocket s = socket;
 		if (s != null) s.sendText(text, true).exceptionally(e -> null);
@@ -61,6 +74,8 @@ public final class EmoteSync {
 
 	private static void connect() {
 		connecting = true;
+		// the room sends everybody's current track again as soon as it accepts the connection
+		com.zerovisual.music.MusicRoom.clearOthers();
 		String target = room;
 		UUID player = self;
 		URI uri = URI.create(RELAY_URL + "/room/" + target + "?uuid=" + player);
@@ -70,8 +85,12 @@ public final class EmoteSync {
 				nextTry = System.currentTimeMillis() + RETRY_MS;
 				return;
 			}
-			if (target.equals(room)) socket = ws;
-			else ws.abort();
+			if (target.equals(room)) {
+				socket = ws;
+				generation++;
+			} else {
+				ws.abort();
+			}
 		});
 	}
 
@@ -84,11 +103,14 @@ public final class EmoteSync {
 		JsonObject message = JsonParser.parseString(text).getAsJsonObject();
 		UUID player = UUID.fromString(message.get("uuid").getAsString());
 		if (player.equals(self)) return;
-		if ("play".equals(message.get("t").getAsString())) {
+		String type = message.get("t").getAsString();
+		if ("play".equals(type)) {
 			Emote emote = Emotes.byId(message.get("id").getAsString());
 			if (emote != null) EmoteManager.play(player, emote);
-		} else {
+		} else if ("stop".equals(type)) {
 			EmoteManager.stop(player);
+		} else if ("music".equals(type)) {
+			com.zerovisual.music.MusicRoom.receive(player, message);
 		}
 	}
 

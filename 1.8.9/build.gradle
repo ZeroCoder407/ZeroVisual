@@ -1,0 +1,206 @@
+plugins {
+	id 'java'
+	id 'gg.essential.loom' version '1.15.52'
+	id 'dev.architectury.architectury-pack200' version '0.1.3'
+	id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+// maven.fabricmc.net, which Loom adds first, does not answer from here: its artifacts come from the mirrors below
+repositories.removeIf { it instanceof MavenArtifactRepository && it.url.toString().contains('fabricmc') }
+
+version = "${project.mod_version}+${project.minecraft_version}"
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+// Minecraft 1.8.9 runs on Java 8; Gradle itself runs on a newer JDK
+java {
+	toolchain.languageVersion = JavaLanguageVersion.of(8)
+}
+
+loom {
+	runs {
+		client {
+			property 'mixin.debug.export', 'true'
+			programArgs '--tweakClass', 'org.spongepowered.asm.launch.MixinTweaker'
+		}
+		remove(getByName('server'))
+	}
+	forge {
+		pack200Provider = new dev.architectury.pack200.java.Pack200Adapter()
+		mixinConfig 'mixins.zerovisual.json'
+		accessTransformer file('src/main/resources/zerovisual_at.cfg')
+	}
+	mixin {
+		// the annotation processor writes the refmap from the Forge (srg) names
+		useLegacyMixinAp = true
+		defaultRefmapName = 'mixins.zerovisual.refmap.json'
+	}
+}
+
+// Forge 1.8.9 looks for resources next to the classes in dev
+sourceSets.main.output.resourcesDir = sourceSets.main.java.classesDirectory.get().asFile
+
+repositories {
+	maven {
+		url = 'https://maven.minecraftforge.net/'
+		// the MCP data of 1.8.9 is a bare zip without a pom
+		metadataSources { mavenPom(); artifact() }
+		content { includeGroup 'net.minecraftforge'; includeGroup 'de.oceanlabs.mcp' }
+	}
+	// Essential: the Forge sources Loom wants and the tools it would take from maven.fabricmc.net
+	maven { url = 'https://repo.essential.gg/repository/maven-public/' }
+	mavenCentral()
+	maven { url = 'https://repo.spongepowered.org/maven/' }
+}
+
+configurations {
+	shadowImpl
+	implementation.extendsFrom shadowImpl
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "de.oceanlabs.mcp:mcp_stable:${project.mcp_mappings}@zip"
+	forge "net.minecraftforge:forge:${project.forge_version}"
+
+	// Mixin is not part of Forge 1.8.9: it ships inside the mod and starts through its tweaker
+	shadowImpl('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
+	annotationProcessor 'org.spongepowered:mixin:0.8.5-SNAPSHOT'
+	annotationProcessor 'com.google.code.gson:gson:2.8.9'
+	annotationProcessor 'com.google.guava:guava:21.0'
+	annotationProcessor 'org.ow2.asm:asm-tree:9.6'
+	annotationProcessor 'org.ow2.asm:asm-commons:9.6'
+	annotationProcessor 'org.ow2.asm:asm-util:9.6'
+	// the math of the effects is shared with the newer versions; 1.8.9 does not ship JOML
+	shadowImpl 'org.joml:joml:1.10.5'
+	// MP3 decoder for the music player (MIT)
+	shadowImpl 'fr.delthas:javamp3:1.0.1'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+}
+
+processResources {
+	inputs.property 'version', project.version
+	inputs.property 'minecraft_version', project.minecraft_version
+	filteringCharset = 'UTF-8'
+	filesMatching('mcmod.info') {
+		expand 'version': project.version, 'minecraft_version': project.minecraft_version
+	}
+	rename 'zerovisual_at.cfg', 'META-INF/zerovisual_at.cfg'
+}
+
+tasks.withType(Jar).configureEach {
+	manifest.attributes(
+		'FMLCorePluginContainsFMLMod': 'true',
+		'ForceLoadAsMod': 'true',
+		'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
+		'MixinConfigs': 'mixins.zerovisual.json',
+		'FMLAT': 'zerovisual_at.cfg'
+	)
+}
+
+jar {
+	archiveClassifier = 'without-deps'
+	destinationDirectory = layout.buildDirectory.dir('intermediates')
+	from('../LICENSE') {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+shadowJar {
+	destinationDirectory = layout.buildDirectory.dir('intermediates')
+	archiveClassifier = 'non-obfuscated-with-deps'
+	configurations = [project.configurations.shadowImpl]
+	relocate 'org.joml', 'com.zerovisual.deps.joml'
+	relocate 'fr.delthas.javamp3', 'com.zerovisual.deps.javamp3'
+	// Java 9+ class files: the ASM of Forge 1.8.9 cannot read them while it scans the mods
+	exclude 'module-info.class', 'META-INF/versions/**'
+}
+
+remapJar {
+	archiveClassifier = ''
+	inputFile = shadowJar.archiveFile
+	dependsOn shadowJar
+}
+
+assemble.dependsOn remapJar
+
+// Signs the remapped jar so the client can tell official builds apart (see BuildVerifier and TRADEMARKS.md).
+// The private key comes from ~/.gradle/gradle.properties (zvSigningKey) or the ZV_SIGNING_KEY environment
+// variable (GitHub Actions secret). Without it the jar stays unsigned and shows "Unofficial build" in game.
+tasks.register("signModJar") {
+	group = "zerovisual"
+	description = "Signs the mod jar with the ZeroVisual release key"
+	dependsOn remapJar
+	def modJar = remapJar.archiveFile
+	def key = project.findProperty("zvSigningKey") ?: System.getenv("ZV_SIGNING_KEY")
+	inputs.file(modJar)
+	doLast {
+		def jarFile = modJar.get().asFile
+		if (!key) {
+			logger.warn("No signing key: ${jarFile.name} is unsigned (Unofficial build)")
+			return
+		}
+		def sigEntry = "META-INF/zerovisual.sig"
+		// same digest as BuildVerifier: per file name, zero byte, sha256 of content, sorted by name
+		def total = java.security.MessageDigest.getInstance("SHA-256")
+		new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+			zip.entries().toList()
+				.findAll { !it.directory && it.name != sigEntry }
+				.sort { a, b -> a.name <=> b.name }
+				.each { entry ->
+					total.update(entry.name.getBytes("UTF-8"))
+					total.update((byte) 0)
+					zip.getInputStream(entry).withCloseable { total.update(java.security.MessageDigest.getInstance("SHA-256").digest(it.readAllBytes())) }
+				}
+		}
+		def privateKey = java.security.KeyFactory.getInstance("Ed25519")
+			.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(Base64.decoder.decode(
+				// also accept the whole "zvSigningKey=..." line pasted as the secret
+				key.toString().trim().replaceFirst(/^zvSigningKey\s*=\s*/, ""))))
+		def signer = java.security.Signature.getInstance("Ed25519")
+		signer.initSign(privateKey)
+		signer.update(total.digest())
+		def signature = Base64.encoder.encodeToString(signer.sign())
+		java.nio.file.FileSystems.newFileSystem(jarFile.toPath(), (ClassLoader) null).withCloseable { fs ->
+			def target = fs.getPath(sigEntry)
+			java.nio.file.Files.createDirectories(target.parent)
+			java.nio.file.Files.writeString(target, signature)
+		}
+		logger.lifecycle("Signed ${jarFile.name}")
+	}
+}
+remapJar.finalizedBy signModJar
+
+// Builds the mod and copies it into a launcher instance's mods folder.
+// Default: Lexplosion instance "zerovisual 1.8.9". Override: -PdeployDir="C:/path/to/mods"
+tasks.register('deployToLauncher') {
+	group = 'zerovisual'
+	description = 'Builds the mod and copies the jar into the launcher mods folder'
+	dependsOn remapJar, signModJar
+
+	def modsDir = file(project.findProperty('deployDir')
+		?: "${System.getenv('APPDATA')}/.lexplosion/instances/zerovisual 1.8.9/mods")
+	def modJar = remapJar.archiveFile
+	def baseName = project.base.archivesName
+
+	doLast {
+		modsDir.mkdirs()
+		modsDir.listFiles({ f -> f.name ==~ /${baseName.get()}-.*\.jar/ } as FileFilter)?.each { it.delete() }
+		copy {
+			from modJar
+			into modsDir
+		}
+		logger.lifecycle("Deployed ${modJar.get().asFile.name} -> ${modsDir}")
+	}
+}
+
+// the game itself needs Java 8 (LaunchWrapper casts the class loader to URLClassLoader)
+tasks.named('runClient') {
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(8) }
+}

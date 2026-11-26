@@ -57,7 +57,7 @@ public class Pet extends Module {
 	public static int poseAnimation = IDLE_NONE;
 	public static float poseBlend, poseTime;
 
-	public final ModeSetting type = add(new ModeSetting("Type", "Star", "Star", "Mini me"));
+	public final ModeSetting type = add(new ModeSetting("Type", "Star", "Star", "Mini me", "Dragon"));
 	public final NumberSetting size = add(new NumberSetting("Size", 1, 0.5, 2, 0.1));
 	/** Armor worn by Mini me (your own armor and items are not copied). */
 	public final ModeSetting armor = add(new ModeSetting("Armor", "None", "None", "Iron", "Diamond", "Netherite"));
@@ -74,6 +74,7 @@ public class Pet extends Module {
 	private long idleSince = -1;
 	private float sit, prevSit;
 	private AvatarRenderState miniState;
+	private final com.zerovisual.pets.DragonPet dragon = new com.zerovisual.pets.DragonPet();
 	/** Mini me: smoothed head direction, when it last arrived next to you (a happy hop) and frame timing. */
 	private float headYaw, headPitch;
 	private long arrivedAt, lastFrame;
@@ -234,6 +235,11 @@ public class Pet extends Module {
 		// legs reach the ground: the lowest outline point is sin(54 deg) * r below the center
 		float centerY = r * 0.81f + hop;
 
+
+		if (type.is("Dragon")) {
+			dragon.render(p, cam, yawNow, running, cycle, size.getFloat(), mc.player.getPosition(delta));
+			return;
+		}
 
 		if (type.is("Mini me")) {
 			drawShadow(p, cam, 0.25f * size.getFloat(), 0);

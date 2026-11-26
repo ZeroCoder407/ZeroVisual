@@ -79,6 +79,7 @@ public class ZeroVisualClient implements ClientModInitializer {
 		com.zerovisual.module.impl.cosmetics.EmoteMenu.registerKeyBinding();
 		Freelook.registerKeyBinding();
 		Waypoints.registerKeyBinding();
+		com.zerovisual.module.impl.utilities.MusicMenu.registerKeyBinding();
 
 		modules = new ModuleManager();
 		modules.init();

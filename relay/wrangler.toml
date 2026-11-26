@@ -6,6 +6,20 @@ compatibility_date = "2026-10-01"
 name = "ROOMS"
 class_name = "EmoteRoom"
 
+[[durable_objects.bindings]]
+name = "LINKS"
+class_name = "PlayerLink"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["EmoteRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["PlayerLink"]
+
+# Music search (src/music.js). Both are public identifiers (they are visible in every request), so they live here;
+# the secrets of the two apps are not used.
+[vars]
+JAMENDO_CLIENT_ID = "cc3b86c8"
+AUDIUS_API_KEY = "39d020bc60958e402e44f5affccad86823d516a0"

@@ -53,7 +53,7 @@ public class KillEffect extends Module {
 	private static final float COLLAPSE_END = 2.85f;
 	private static final float HOLE_END = 3.45f;
 
-	public final ModeSetting style = add(new ModeSetting("Style", "Black hole", "Black hole", "Shockwave", "Lightning", "Soul"));
+	public final ModeSetting style = add(new ModeSetting("Style", "Black hole", "Black hole", "Shockwave", "Lightning", "Soul", "Hell", "ArmsLegs"));
 	public final BooleanSetting sound = add(new BooleanSetting("Sound", true));
 
 	private final List<Wave> waves = new ArrayList<>();
@@ -62,6 +62,8 @@ public class KillEffect extends Module {
 	/** Dying entities hidden while their copy is pulled into a black hole (EntityRenderDispatcherMixin). */
 	private final Set<Integer> hidden = Collections.synchronizedSet(new HashSet<>());
 	private LivingEntity watched;
+	private final com.zerovisual.killfx.HellGates hell = new com.zerovisual.killfx.HellGates(this);
+	private final com.zerovisual.killfx.TentacleTear tear = new com.zerovisual.killfx.TentacleTear(this);
 
 	public KillEffect() {
 		super("KillEffect", "Effect when you kill a target (only you see it)", Category.COSMETICS);
@@ -72,8 +74,23 @@ public class KillEffect extends Module {
 		waves.clear();
 		souls.clear();
 		holes.clear();
+		hell.clear();
+		tear.clear();
 		hidden.clear();
 		watched = null;
+	}
+
+	/** Effects hide the real dying body (they draw their own copy) until they are done with it. */
+	public void hide(int entityId) {
+		hidden.add(entityId);
+	}
+
+	public void unhide(int entityId) {
+		hidden.remove(entityId);
+	}
+
+	public boolean soundEnabled() {
+		return sound.get();
 	}
 
 	public boolean isHidden(Entity entity) {
@@ -107,6 +124,10 @@ public class KillEffect extends Module {
 			startHole(entity);
 		} else if (style.is("Soul")) {
 			souls.add(new Wave(pos, System.currentTimeMillis()));
+		} else if (style.is("Hell")) {
+			hell.start(entity);
+		} else if (style.is("ArmsLegs")) {
+			tear.start(entity);
 		} else {
 			waves.add(new Wave(pos, System.currentTimeMillis()));
 			if (sound.get()) mc.player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.6f, 0.6f);
@@ -135,6 +156,8 @@ public class KillEffect extends Module {
 	}
 
 	public void render(WorldContext context) {
+		hell.render(context);
+		tear.render(context);
 		if (!souls.isEmpty()) renderSouls(context);
 		if (!holes.isEmpty()) renderHoles(context);
 		if (waves.isEmpty()) return;

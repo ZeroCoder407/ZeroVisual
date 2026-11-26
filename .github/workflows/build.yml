@@ -18,6 +18,11 @@ jobs:
               25
           - project: '26.3'
             java: '25'
+          # Forge 1.8.9: Gradle and Loom run on Java 21, the mod is compiled and run with the Java 8 toolchain (JAVA_HOME_8_X64)
+          - project: '1.8.9'
+            java: |
+              8
+              21
     defaults:
       run:
         working-directory: ${{ matrix.project }}

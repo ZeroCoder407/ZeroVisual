@@ -144,6 +144,7 @@ public class ModuleManager {
 		add(new PlayerView());
 		add(new Minimap());
 		add(new LowHealth());
+		add(new com.zerovisual.module.impl.hud.NowPlaying());
 
 		// Utilities
 		add(new ClickGui());
@@ -154,6 +155,7 @@ public class ModuleManager {
 		add(new ScreenshotPlus());
 		add(new AutoReconnect());
 		add(new com.zerovisual.module.impl.utilities.PlayWithFriends());
+		add(new com.zerovisual.module.impl.utilities.MusicMenu());
 		add(new EntityCulling());
 		add(new ParticleLimit());
 		add(new CrystalOptimizer());

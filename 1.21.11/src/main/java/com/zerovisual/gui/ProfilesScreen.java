@@ -70,7 +70,8 @@ public class ProfilesScreen extends Screen {
 			if (!s.isEmpty() && !ConfigManager.isValidProfileName(s)) nameField.setValue(s.substring(0, s.length() - 1));
 		});
 		nameField.setHint(Component.translatable("zerovisual.profiles.placeholder").withStyle(ChatFormatting.DARK_GRAY));
-		nameField.setTextColor(Theme.TEXT & 0xFFFFFF);
+		// ARGB since 1.21.6: without the alpha the text would be invisible
+		nameField.setTextColor(Theme.TEXT);
 		addRenderableWidget(nameField);
 		setInitialFocus(nameField);
 	}

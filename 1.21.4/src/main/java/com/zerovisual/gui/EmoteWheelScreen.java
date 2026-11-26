@@ -8,6 +8,8 @@ import com.zerovisual.render.Anim;
 import com.zerovisual.render.ColorUtil;
 import com.zerovisual.render.Render2D;
 import net.minecraft.client.gui.DrawContext;
+import org.lwjgl.glfw.GLFW;
+import java.util.List;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
@@ -20,12 +22,20 @@ public class EmoteWheelScreen extends Screen {
 	public static boolean keepOpen;
 	/** DevScreenshots: the sector shown as pointed at. */
 	public static int forcedHover = -1;
+	/** DevScreenshots: the page to open on (-1 = first page). */
+	public static int forcedPage = -1;
 
 	private final EmoteMenu menu;
 	private final Anim open = new Anim(14f, 0f);
-	private final Anim[] lit = new Anim[Emotes.ALL.size()];
+	private final Anim[] lit = new Anim[24];
+	/** 0 = single dances and gestures, 1 = group dances (B, then 2). */
+	private int page = Math.max(0, forcedPage);
 	private int hovered = -1;
 	private boolean centerHovered;
+
+	private List<Emote> pageEmotes() {
+		return page == 0 ? Emotes.SINGLES : Emotes.GROUPS;
+	}
 
 	public EmoteWheelScreen(EmoteMenu menu) {
 		super(Text.translatableWithFallback("zerovisual.emote.title", "Emotes"));
@@ -57,15 +67,31 @@ public class EmoteWheelScreen extends Screen {
 			hovered = -1;
 			return;
 		}
-		int count = Emotes.ALL.size();
+		int count = pageEmotes().size();
 		double angle = Math.atan2(dy, dx) + Math.PI / 2 + Math.PI / count;
 		hovered = (int) Math.floor(angle / (2 * Math.PI) * count + count) % count;
 	}
 
 	private void select() {
-		if (hovered >= 0) menu.play(Emotes.ALL.get(hovered));
+		if (hovered >= 0 && hovered < pageEmotes().size()) menu.play(pageEmotes().get(hovered));
 		else if (centerHovered) menu.stop();
 		close();
+	}
+
+	/** 2 switches to the group dances, 1 back to the single ones. */
+	@Override
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		if (keyCode == GLFW.GLFW_KEY_2 && page == 0 && !Emotes.GROUPS.isEmpty()) {
+			page = 1;
+			hovered = -1;
+			return true;
+		}
+		if (keyCode == GLFW.GLFW_KEY_1 && page == 1) {
+			page = 0;
+			hovered = -1;
+			return true;
+		}
+		return super.keyPressed(keyCode, scanCode, modifiers);
 	}
 
 	@Override
@@ -99,7 +125,8 @@ public class EmoteWheelScreen extends Screen {
 		float cx = width / 2f, cy = height / 2f;
 		float grow = 0.86f + 0.14f * k;
 		float outer = outerRadius() * grow, inner = outer * RING;
-		int count = Emotes.ALL.size();
+		List<Emote> emotes = pageEmotes();
+		int count = emotes.size();
 		Emote current = client.player != null ? EmoteManager.current(client.player.getUuid()) : null;
 		Render2D.setAlpha(k);
 		float half = (float) Math.PI / count;
@@ -111,15 +138,15 @@ public class EmoteWheelScreen extends Screen {
 			Render2D.sector(ctx, cx, cy, inner, outer, middle + half - LINE, middle + half + LINE, 0x70FFFFFF, 0x70FFFFFF);
 		}
 		for (int i = 0; i < count; i++) {
-			Emote emote = Emotes.ALL.get(i);
+			Emote emote = emotes.get(i);
 			float middle = 2 * half * i - (float) Math.PI / 2;
 			// a thin line marks what is playing, the way the wheel of GTA marks the weapon in hand
 			if (emote == current) Render2D.sector(ctx, cx, cy, outer - 2.5f, outer, middle - half + LINE, middle + half - LINE, Theme.accent(), Theme.accent());
 			float x = cx + (float) Math.cos(middle) * (inner + outer) / 2, y = cy + (float) Math.sin(middle) * (inner + outer) / 2;
 			drawLabel(ctx, label(emote), x, y, 0xFFFFFFFF);
 		}
-		if (hovered >= 0) {
-			String name = label(Emotes.ALL.get(hovered));
+		if (hovered >= 0 && hovered < emotes.size()) {
+			String name = label(emotes.get(hovered));
 			Render2D.text(ctx, name, cx - Render2D.textWidth(name) / 2f, cy - 13, 0xFFFFFFFF, true);
 			String number = (hovered + 1) + " / " + count;
 			float side = Render2D.textWidth(number) / 2f + 7;
@@ -127,8 +154,16 @@ public class EmoteWheelScreen extends Screen {
 			Render2D.text(ctx, "<", cx - side - Render2D.textWidth("<"), cy + 3, SELECTED | 0xFF000000, true);
 			Render2D.text(ctx, ">", cx + side, cy + 3, SELECTED | 0xFF000000, true);
 		} else {
-			String center = current != null ? Text.translatableWithFallback("zerovisual.emote.stop", "Stop").getString() : title.getString();
+			String center = current != null ? Text.translatableWithFallback("zerovisual.emote.stop", "Stop").getString()
+				: page == 1 ? Text.translatableWithFallback("zerovisual.emote.groups", "Group dances").getString() : title.getString();
 			Render2D.text(ctx, center, cx - Render2D.textWidth(center) / 2f, cy - 4, 0xFFFFFFFF, true);
+		}
+		// page hint under the wheel
+		String hint = page == 1
+			? Text.translatableWithFallback("zerovisual.emote.hint_singles", "1 - emotes").getString()
+			: !Emotes.GROUPS.isEmpty() ? Text.translatableWithFallback("zerovisual.emote.hint_group", "2 - group dances").getString() : "";
+		if (!hint.isEmpty()) {
+			Render2D.text(ctx, hint, cx - Render2D.textWidth(hint) / 2f, cy + outerRadius() + 6, 0xB0FFFFFF, true);
 		}
 		Render2D.setAlpha(1);
 	}

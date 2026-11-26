@@ -15,10 +15,18 @@ public final class Emotes {
 		new Emote("rampage", "Rampage", DanceTracks.RAMPAGE.duration(), true, DanceTracks.RAMPAGE),
 		new Emote("funk", "Funked up", DanceTracks.FUNK.duration(), true, DanceTracks.FUNK),
 		new Emote("squat", "Prisyadka", 4.8f, true, squatDance()),
+		new Emote("lol", "LOL dance", DanceTracks.LOL.duration(), true, DanceTracks.LOL),
+		new Emote("jeffrey", "Jeffrey dance", DanceTracks.JEFFREY.duration(), true, DanceTracks.JEFFREY),
 		new Emote("flex", "Flex", 3f, false, Emotes::flex),
 		new Emote("moonwalk", "Moonwalk", 4f, false, Emotes::moonwalk),
-		new Emote("group", "Group dance", DanceTracks.GROUP.duration(), true, true, DanceTracks.GROUP)
+		new Emote("group", "Group dance", DanceTracks.GROUP.duration(), true, true, DanceTracks.GROUP),
+		new Emote("threeo", "3o dance", DanceTracks.THREEO.duration(), true, true, 3, DanceTracks.THREEO)
 	);
+
+	/** Page one of the wheel: single dances and gestures. */
+	public static final List<Emote> SINGLES = ALL.stream().filter(e -> !e.group()).toList();
+	/** Page two (B+2): dances that need company. */
+	public static final List<Emote> GROUPS = ALL.stream().filter(Emote::group).toList();
 
 	private Emotes() {
 	}

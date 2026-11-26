@@ -39,3 +39,5 @@ HANDOFF.md
 # Relay dependencies
 node_modules/
 .wrangler/
+# relay secrets for wrangler dev
+.dev.vars

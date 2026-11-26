@@ -77,7 +77,8 @@ public class EmoteMenu extends Module {
 			wasPlaying = false;
 			return;
 		}
-		EmoteSync.setRoom(sync.get() ? place() : null, mc.player.getUUID());
+		boolean music = com.zerovisual.ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.utilities.MusicMenu.class).wantsRoom();
+		EmoteSync.setRoom(sync.get() || music ? place() : null, mc.player.getUUID());
 		if (mc.screen == null && emoteKey.isDown()) mc.setScreen(new EmoteWheelScreen(this));
 
 		boolean playing = EmoteManager.current(mc.player.getUUID()) != null;
@@ -120,9 +121,12 @@ public class EmoteMenu extends Module {
 	}
 
 	/** What identifies this game for everybody in it: the Play With Friends room, or the server address. */
-	private String place() {
+	public static String place() {
 		String room = PwfManager.room();
 		if (room != null) return "pwf:" + room;
+		// tests of emotes and music together in a singleplayer world
+		String dev = System.getProperty("zerovisual.devRoom");
+		if (dev != null) return "dev:" + dev;
 		ServerData server = mc.getCurrentServer();
 		return server != null ? "server:" + server.ip.toLowerCase(java.util.Locale.ROOT) : null;
 	}

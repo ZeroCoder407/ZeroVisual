@@ -1,0 +1,79 @@
+package com.zerovisual.module.impl.visuals;
+
+import com.zerovisual.module.Category;
+import com.zerovisual.module.Module;
+import com.zerovisual.setting.BooleanSetting;
+import com.zerovisual.setting.KeySetting;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.util.MathHelper;
+import org.lwjgl.input.Keyboard;
+
+/**
+ * While the freelook key is held, the mouse orbits the third-person camera around you
+ * and your player keeps looking where it was. Camera only, see CameraMixin / EntityMixin.
+ * Note: some servers do not allow freelook.
+ */
+public class Freelook extends Module {
+	private static KeyBinding freelookKey;
+
+	public final KeySetting key = add(new KeySetting("Key", () -> freelookKey));
+	public final BooleanSetting frontView = add(new BooleanSetting("Front view", false));
+
+	private boolean active;
+	private float yaw, pitch;
+	/** thirdPersonView before freelook: 0 first person, 1 behind, 2 in front. */
+	private int previousPerspective = -1;
+
+	public Freelook() {
+		super("Freelook", "Look around without turning your character (Alt by default). Not allowed on some servers", Category.VISUALS);
+	}
+
+	public static void registerKeyBinding() {
+		freelookKey = new KeyBinding("key.zerovisual.freelook", Keyboard.KEY_LMENU, "category.zerovisual");
+		ClientRegistry.registerKeyBinding(freelookKey);
+	}
+
+	@Override
+	public void onTick() {
+		boolean wanted = mc.thePlayer != null && freelookKey != null && freelookKey.isKeyDown() && mc.currentScreen == null;
+		if (wanted && !active) start();
+		else if (!wanted && active) stop();
+	}
+
+	@Override
+	protected void onDisable() {
+		if (active) stop();
+	}
+
+	private void start() {
+		active = true;
+		yaw = mc.thePlayer.rotationYaw;
+		pitch = mc.thePlayer.rotationPitch;
+		previousPerspective = mc.gameSettings.thirdPersonView;
+		mc.gameSettings.thirdPersonView = frontView.get() ? 2 : 1;
+	}
+
+	private void stop() {
+		active = false;
+		if (previousPerspective >= 0) mc.gameSettings.thirdPersonView = previousPerspective;
+	}
+
+	public boolean isActive() {
+		return active && isEnabled();
+	}
+
+	/** Same scaling as Entity#changeLookDirection. */
+	public void rotate(double cursorDeltaX, double cursorDeltaY) {
+		yaw += (float) cursorDeltaX * 0.15f;
+		pitch = MathHelper.clamp_float(pitch + (float) cursorDeltaY * 0.15f, -90f, 90f);
+	}
+
+	public float getYaw() {
+		return yaw;
+	}
+
+	public float getPitch() {
+		return pitch;
+	}
+}

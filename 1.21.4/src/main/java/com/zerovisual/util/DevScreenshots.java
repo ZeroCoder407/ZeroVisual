@@ -28,6 +28,7 @@ import java.util.List;
 public final class DevScreenshots {
 	private static final List<String> FONTS = List.of("Minecraft", "Inter", "Montserrat", "Rubik", "Nunito", "Comfortaa");
 	private static int ticks;
+	private static int holdSteps;
 	private static int step;
 	private static int startFrom;
 	private static boolean splashShot;
@@ -641,6 +642,113 @@ public final class DevScreenshots {
 				style.opacity.set(0.88);
 				style.background.set(0xFF0D0D12);
 			}
+			case 121 -> {
+				// the halo as a solid ring, in front and from above
+				mc.options.hudHidden = true;
+				for (var m : ZeroVisualClient.get().modules().getModules())
+					if (m.getCategory() != com.zerovisual.module.Category.HUD && !m.getName().equals("ClickGUI") && !m.getName().equals("EmoteMenu")) m.setEnabled(false);
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(true);
+				mc.options.getFov().setValue(30);
+				mc.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
+				mc.player.setPitch(12);
+				timedShots.put(ticks + 10, "zv_halo_front");
+			}
+			case 122 -> {
+				mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+				mc.player.setPitch(45);
+				timedShots.put(ticks + 10, "zv_halo_above");
+			}
+			case 123 -> {
+				ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(false);
+				mc.options.getFov().setValue(70);
+				mc.options.hudHidden = false;
+			}
+			// the system player (--zvDevShotFrom 160; something must play in Windows)
+			case 160 -> mc.setScreen(new com.zerovisual.gui.MusicScreen(null));
+			case 161 -> ZeroVisualClient.LOGGER.info("[sys] {} by {} in {}, paused {}, at {} ms",
+				com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().title,
+				com.zerovisual.music.MusicPlayer.current() == null ? "" : com.zerovisual.music.MusicPlayer.current().artist,
+				com.zerovisual.music.MusicPlayer.current() == null ? "" : com.zerovisual.music.MusicPlayer.current().label,
+				com.zerovisual.music.MusicPlayer.isPaused(), com.zerovisual.music.MusicPlayer.position());
+			case 162 -> shot(mc, "zv_sys_menu");
+			case 163 -> com.zerovisual.music.MusicPlayer.togglePause();
+			case 164, 165 -> ZeroVisualClient.LOGGER.info("[sys] after pause: paused {}, at {} ms", com.zerovisual.music.MusicPlayer.isPaused(), com.zerovisual.music.MusicPlayer.position());
+			case 166 -> {
+				com.zerovisual.music.MusicPlayer.togglePause();
+				com.zerovisual.music.MusicPlayer.seek(90_000);
+			}
+			case 167 -> {
+				mc.setScreen(null);
+				ZeroVisualClient.LOGGER.info("[sys] after play + seek: paused {}, at {} ms", com.zerovisual.music.MusicPlayer.isPaused(), com.zerovisual.music.MusicPlayer.position());
+			}
+			case 168 -> shot(mc, "zv_sys_hud");
+			case 169 -> mc.scheduleStop();
+			// YouTube through the player page (--zvDevShotFrom 170, -Dzerovisual.noBrowser -Dzerovisual.linkSecret=...)
+			case 170 -> {
+				mc.setScreen(new com.zerovisual.gui.MusicScreen(null));
+				com.zerovisual.gui.MusicScreen.devSearch("kamz0ner");
+			}
+			case 171, 172 -> {
+			}
+			case 173 -> com.zerovisual.gui.MusicScreen.devPlay(0);
+			case 174 -> shot(mc, "zv_yt_waiting");
+			case 175 -> {
+				ZeroVisualClient.LOGGER.info("[yt] {} at {} ms, loading {}, page {}",
+					com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().title,
+					com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading(), com.zerovisual.music.YouTubeLink.pageOnline());
+				// stay here for a while: the page is opened and clicked by hand
+				if (++holdSteps < 60) step--;
+			}
+			case 176 -> {
+				com.zerovisual.music.MusicPlayer.seek(60_000);
+				shot(mc, "zv_yt_playing");
+			}
+			case 177, 178 -> ZeroVisualClient.LOGGER.info("[yt] after seek at {} ms, paused {}", com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isPaused());
+			case 179 -> {
+				com.zerovisual.music.MusicPlayer.stop();
+				mc.scheduleStop();
+			}
+			// the music player (--zvDevShotFrom 180; needs a relay with /music, -Dzerovisual.relay=ws://127.0.0.1:8799)
+			case 180 -> mc.setScreen(new com.zerovisual.gui.MusicScreen(null));
+			case 181, 182 -> {
+			}
+			case 183 -> shot(mc, "zv_music_popular");
+			case 184 -> com.zerovisual.gui.MusicScreen.devPlay(0);
+			case 185, 186, 187 -> ZeroVisualClient.LOGGER.info("[music] {} at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().title,
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 188 -> shot(mc, "zv_music_playing");
+			case 189 -> com.zerovisual.gui.MusicScreen.devSearch("макс корж");
+			case 190, 191 -> {
+			}
+			case 192 -> shot(mc, "zv_music_search");
+			case 193 -> com.zerovisual.gui.MusicScreen.devTab(1);
+			case 194 -> shot(mc, "zv_music_together");
+			case 195 -> {
+				mc.setScreen(null);
+				com.zerovisual.music.MusicPlayer.seek(60_000);
+			}
+			case 196, 197 -> ZeroVisualClient.LOGGER.info("[music] after seek at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 198 -> shot(mc, "zv_music_hud");
+			case 199 -> com.zerovisual.music.MusicPlayer.stop();
+			// listen together (-Dzerovisual.devRoom=..., with a script on the relay playing as another player)
+			case 200 -> mc.setScreen(new com.zerovisual.gui.MusicScreen(null));
+			case 201 -> com.zerovisual.gui.MusicScreen.devTab(1);
+			case 202 -> shot(mc, "zv_music_together_list");
+			case 203 -> {
+				var others = com.zerovisual.music.MusicRoom.listening();
+				ZeroVisualClient.LOGGER.info("[music] others in the room: {}", others.size());
+				if (!others.isEmpty()) com.zerovisual.music.MusicRoom.follow(others.get(0).player);
+			}
+			case 204, 205, 206 -> ZeroVisualClient.LOGGER.info("[music] following: {} at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().title,
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 207 -> shot(mc, "zv_music_following");
+			case 208, 209, 210, 211 -> ZeroVisualClient.LOGGER.info("[music] following: {} at {} ms, paused {}",
+				com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().id,
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isPaused());
+			case 212 -> com.zerovisual.music.MusicPlayer.stop();
 			default -> mc.scheduleStop();
 		}
 		step++;

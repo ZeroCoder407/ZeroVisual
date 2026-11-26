@@ -97,13 +97,44 @@ public final class DevScreenshots {
 	// each season gets 15 seconds, so that a carpet has time to settle
 	private static final int SEASONS_STEP = 218;
 
+	/** --zvDevShotFrom 400: the halo alone, close up, in front and from above. */
+	private static final int HALO_STEP = 400;
+
+	private static void halo(Minecraft mc) {
+		var modules = ZeroVisualClient.get().modules();
+		switch (step - HALO_STEP) {
+			case 0 -> {
+				hideGui(mc, true);
+				for (var m : modules.getModules())
+					if (m.getCategory() != com.zerovisual.module.Category.HUD && !m.getName().equals("ClickGUI") && !m.getName().equals("EmoteMenu")) m.setEnabled(false);
+				modules.get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(true);
+				mc.options.fov().set(30);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(12);
+				timedShots.put(ticks + 10, "zv_halo_front");
+			}
+			case 1 -> {
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(45);
+				timedShots.put(ticks + 10, "zv_halo_above");
+			}
+			case 2 -> {
+				modules.get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(false);
+				mc.options.fov().set(70);
+				hideGui(mc, false);
+			}
+			default -> mc.stop();
+		}
+		step++;
+	}
+
 	private static void seasons(Minecraft mc) {
 		String[] modes = {"Autumn", "Winter", "Spring", "Summer"};
 		int n = step - SEASONS_STEP, season = n / 10;
 		var module = ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.visuals.Seasons.class);
 		if (season >= modes.length) {
-			module.setEnabled(false);
-			mc.stop();
+			seasonsPromo(mc, module, n - 40);
+			step++;
 			return;
 		}
 		if (n % 10 == 0) {
@@ -118,8 +149,187 @@ public final class DevScreenshots {
 		step++;
 	}
 
+	/** --zvDevShotFrom 410: the two new pets and the two new kill effects. */
+	private static final int NEWFX_STEP = 410;
+
+	private static void newfx(Minecraft mc) {
+		var modules = ZeroVisualClient.get().modules();
+		String who = mc.player.getName().getString();
+		switch (step - NEWFX_STEP) {
+			case 0 -> {
+				hideGui(mc, true);
+				for (var m : modules.getModules())
+					if (m.getCategory() != com.zerovisual.module.Category.HUD && !m.getName().equals("ClickGUI") && !m.getName().equals("EmoteMenu")) m.setEnabled(false);
+				mc.options.pauseOnLostFocus = false;
+				runCommand(mc, "gamemode creative " + who);
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 6000");
+				runCommand(mc, "execute at " + who + " run fill ~-4 150 ~-4 ~4 150 ~4 minecraft:smooth_stone");
+				runCommand(mc, "execute at " + who + " run tp " + who + " ~ 151 ~");
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				mc.player.setYRot(0);
+				mc.player.setXRot(6);
+				mc.options.fov().set(35);
+			}
+			case 1 -> {
+				// LOL dance, from the front
+				hideGui(mc, true);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(0);
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("lol"));
+				timedShots.put(ticks + 45, "zv_emote_lol");
+			}
+			case 2 -> {
+				// 3o dance on its own
+				com.zerovisual.emote.EmoteManager.clear();
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("threeo"));
+				timedShots.put(ticks + 40, "zv_emote_threeo");
+			}
+			case 3 -> {
+				// the group page of the wheel (what B+2 opens)
+				com.zerovisual.emote.EmoteManager.clear();
+				com.zerovisual.gui.EmoteWheelScreen.forcedPage = 1;
+				com.zerovisual.gui.EmoteWheelScreen.keepOpen = true;
+				mc.setScreen(new com.zerovisual.gui.EmoteWheelScreen(ZeroVisualClient.get().modules().get(com.zerovisual.module.impl.cosmetics.EmoteMenu.class)));
+				timedShots.put(ticks + 12, "zv_emote_wheel_group");
+			}
+			case 4 -> {
+				mc.setScreen(null);
+				com.zerovisual.gui.EmoteWheelScreen.keepOpen = false;
+				com.zerovisual.gui.EmoteWheelScreen.forcedPage = -1;
+				mc.options.fov().set(70);
+				modules.get(com.zerovisual.module.impl.cosmetics.KillEffect.class).setEnabled(true);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(18);
+				runCommand(mc, "kill @e[type=!player]");
+				var ahead = mc.player.getLookAngle().multiply(1, 0, 1).normalize();
+				var at = mc.player.position().add(ahead.scale(3.5));
+				runCommand(mc, String.format(java.util.Locale.ROOT, "summon minecraft:husk %.2f %.2f %.2f {NoAI:1b,Silent:1b,PersistenceRequired:1b}", at.x, at.y, at.z));
+			}
+			case 5 -> {
+				var kill = modules.get(com.zerovisual.module.impl.cosmetics.KillEffect.class);
+				kill.style.set("Hell");
+				mc.level.getEntitiesOfClass(net.minecraft.world.entity.monster.zombie.Husk.class, mc.player.getBoundingBox().inflate(10)).stream().findFirst().ifPresent(kill::trigger);
+				timedShots.put(ticks + 20, "zv_fx_hell_rise");
+				timedShots.put(ticks + 40, "zv_fx_hell_hands");
+				timedShots.put(ticks + 66, "zv_fx_hell_close");
+			}
+			case 6, 7 -> {
+				// the gates finish closing before the next effect
+			}
+			case 8 -> {
+				runCommand(mc, "kill @e[type=!player]");
+				var ahead = mc.player.getLookAngle().multiply(1, 0, 1).normalize();
+				var at = mc.player.position().add(ahead.scale(3.5));
+				runCommand(mc, String.format(java.util.Locale.ROOT, "summon minecraft:husk %.2f %.2f %.2f {NoAI:1b,Silent:1b,PersistenceRequired:1b}", at.x, at.y, at.z));
+			}
+			case 9 -> {
+				var kill = modules.get(com.zerovisual.module.impl.cosmetics.KillEffect.class);
+				kill.style.set("ArmsLegs");
+				mc.level.getEntitiesOfClass(net.minecraft.world.entity.monster.zombie.Husk.class, mc.player.getBoundingBox().inflate(10)).stream().findFirst().ifPresent(kill::trigger);
+				timedShots.put(ticks + 18, "zv_fx_tentacle_coil");
+				timedShots.put(ticks + 33, "zv_fx_tentacle_tear");
+				timedShots.put(ticks + 55, "zv_fx_tentacle_gone");
+			}
+			case 10, 11 -> {
+				// the tentacles sink back into the ground
+			}
+			case 12 -> {
+				runCommand(mc, "kill @e[type=!player]");
+				// the mini dragon, from above
+				var pet = modules.get(com.zerovisual.module.impl.cosmetics.Pet.class);
+				pet.setEnabled(true);
+				pet.type.set("Dragon");
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				mc.player.setYRot(0);
+				mc.player.setXRot(14);
+				mc.options.fov().set(45);
+				pet.placeAt(mc.player.position().add(0, 0, 3.5), 180);
+				timedShots.put(ticks + 10, "zv_pet_dragon");
+				timedShots.put(ticks + 80, "zv_pet_dragon_hi");
+			}
+			case 13, 14 -> {
+				// waiting for the sit shot
+			}
+			case 15 -> mc.stop();
+			default -> mc.stop();
+		}
+		step++;
+	}
+
+	// promo shot for the 0.5.0 banner: the group dance in falling leaves at sunset
+	private static void seasonsPromo(Minecraft mc, com.zerovisual.module.impl.visuals.Seasons module, int n) {
+		switch (n) {
+			case 0 -> {
+				hideGui(mc, true);
+				var modules = ZeroVisualClient.get().modules();
+				for (var m : modules.getModules()) {
+					String name = m.getName();
+					if (name.equals("Nametags") || name.equals("Pet") || name.equals("HitParticles") || name.equals("CustomSky") || name.equals("Halo")
+						|| name.equals("Wings") || name.equals("ChinaHat") || name.equals("TargetESP")) m.setEnabled(false);
+				}
+				runCommand(mc, "kill @e[type=!player]");
+				runCommand(mc, "time set 11600");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.options.fov().set(52);
+				mc.player.setXRot(6);
+				module.mode.set("Autumn");
+				module.count.set(800.0);
+				org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(), 2240, 1600);
+				module.stay.set(14.0);
+				module.size.set(0.13);
+				module.setEnabled(true);
+			}
+			case 8 -> {
+				com.zerovisual.emote.EmoteManager.play(mc.player.getUUID(), com.zerovisual.emote.Emotes.byId("group"));
+				for (int i = 0; i < 6; i++) timedShots.put(ticks + 8 + i * 9, "zv_promo050_" + i);
+			}
+			case 10 -> {
+				mc.options.fov().set(70);
+				module.setEnabled(false);
+				mc.stop();
+			}
+			default -> {
+			}
+		}
+	}
+
+	/** The music player (--zvDevShotFrom 500; needs a relay with /music: -Dzerovisual.relay=ws://127.0.0.1:8799). */
+	private static final int MUSIC_STEP = 500;
+
+	private static void music(Minecraft mc) {
+		int n = step - MUSIC_STEP;
+		switch (n) {
+			case 0 -> mc.setScreen(new com.zerovisual.gui.MusicScreen(null));
+			case 3 -> shot(mc, "zv_music_popular");
+			case 4 -> com.zerovisual.gui.MusicScreen.devPlay(0);
+			case 5, 6, 7 -> ZeroVisualClient.LOGGER.info("[music] {} at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().title,
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 8 -> shot(mc, "zv_music_playing");
+			case 9 -> com.zerovisual.gui.MusicScreen.devSearch("макс корж");
+			case 12 -> shot(mc, "zv_music_search");
+			case 13 -> com.zerovisual.gui.MusicScreen.devTab(1);
+			case 14 -> shot(mc, "zv_music_together");
+			case 15 -> {
+				mc.setScreen(null);
+				com.zerovisual.music.MusicPlayer.seek(60_000);
+			}
+			case 16, 17, 18 -> ZeroVisualClient.LOGGER.info("[music] after seek at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 19 -> shot(mc, "zv_music_hud");
+			case 20 -> com.zerovisual.music.MusicPlayer.stop();
+			case 21 -> mc.stop();
+			default -> {
+			}
+		}
+		step++;
+	}
+
 	private static void world(Minecraft mc) {
 		if (mc.level == null || mc.player == null) return;
+		// unattended runs: never let a pause menu spoil the shots
+		if (mc.screen instanceof net.minecraft.client.gui.screens.PauseScreen) mc.setScreen(null);
 		ticks++;
 		if (movingTicks > 0) {
 			// walk forward to draw a trail
@@ -137,6 +347,18 @@ public final class DevScreenshots {
 		}
 		if (timedShots.containsKey(ticks)) shot(mc, timedShots.remove(ticks));
 		if (ticks < 100 || ticks % 30 != 0) return;
+		if (step >= MUSIC_STEP) {
+			music(mc);
+			return;
+		}
+		if (step >= NEWFX_STEP) {
+			newfx(mc);
+			return;
+		}
+		if (step >= HALO_STEP) {
+			halo(mc);
+			return;
+		}
 		if (step >= SEASONS_STEP) {
 			seasons(mc);
 			return;

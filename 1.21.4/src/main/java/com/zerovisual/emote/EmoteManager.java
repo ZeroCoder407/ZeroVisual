@@ -37,10 +37,23 @@ public final class EmoteManager {
 
 	/** Every client works this out from its own clock, so the dancers it shows are together. */
 	private static long groupBeat(UUID player, Emote emote, long now) {
-		long beat = now;
+		// the active dancers of this emote, sorted by UUID: every client builds the same roster
+		java.util.List<UUID> roster = new java.util.ArrayList<>();
 		for (Map.Entry<UUID, Active> entry : PLAYING.entrySet()) {
 			Active a = entry.getValue();
-			if (!entry.getKey().equals(player) && a.emote == emote && a.stopAt == 0) beat = Math.min(beat, a.beat);
+			if (a.emote == emote && a.stopAt == 0) roster.add(entry.getKey());
+		}
+		if (!roster.contains(player)) roster.add(player);
+		roster.sort(java.util.Comparator.comparing(UUID::toString));
+		int index = roster.indexOf(player);
+		int size = emote.groupSize();
+		int from = size >= 2 ? (index / size) * size : 0;
+		int to = size >= 2 ? Math.min(roster.size(), from + size) : roster.size();
+		long beat = now;
+		for (int i = from; i < to; i++) {
+			if (i == index) continue;
+			Active a = PLAYING.get(roster.get(i));
+			if (a != null && a.stopAt == 0) beat = Math.min(beat, a.beat);
 		}
 		return beat;
 	}

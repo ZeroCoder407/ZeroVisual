@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "minVersion": "0.7",
+  "package": "com.zerovisual.mixin",
+  "refmap": "mixins.zerovisual.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "AbstractClientPlayerMixin",
+    "EffectRendererMixin",
+    "EntityLivingBaseMixin",
+    "EntityRendererMixin",
+    "GuiButtonMixin",
+    "GuiContainerMixin",
+    "GuiMainMenuMixin",
+    "GuiNewChatMixin",
+    "IntegratedServerMixin",
+    "ItemRendererMixin",
+    "LayerArmorBaseMixin",
+    "LayerCapeMixin",
+    "LayerHeldItemMixin",
+    "ModelBipedMixin",
+    "ModelBoxAccessor",
+    "ModelPlayerMixin",
+    "ModelRendererAccessor",
+    "RenderDragonMixin",
+    "RenderEnderCrystalMixin",
+    "RenderEntityItemMixin",
+    "RenderItemMixin",
+    "RenderManagerMixin",
+    "RendererLivingEntityMixin",
+    "WorldMixin"
+  ]
+}

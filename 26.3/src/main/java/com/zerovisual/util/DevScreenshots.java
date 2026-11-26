@@ -97,6 +97,37 @@ public final class DevScreenshots {
 	// each season gets 15 seconds, so that a carpet has time to settle
 	private static final int SEASONS_STEP = 218;
 
+	/** --zvDevShotFrom 400: the halo alone, close up, in front and from above. */
+	private static final int HALO_STEP = 400;
+
+	private static void halo(Minecraft mc) {
+		var modules = ZeroVisualClient.get().modules();
+		switch (step - HALO_STEP) {
+			case 0 -> {
+				hideGui(mc, true);
+				for (var m : modules.getModules())
+					if (m.getCategory() != com.zerovisual.module.Category.HUD && !m.getName().equals("ClickGUI") && !m.getName().equals("EmoteMenu")) m.setEnabled(false);
+				modules.get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(true);
+				mc.options.fov().set(30);
+				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+				mc.player.setXRot(12);
+				timedShots.put(ticks + 10, "zv_halo_front");
+			}
+			case 1 -> {
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				mc.player.setXRot(45);
+				timedShots.put(ticks + 10, "zv_halo_above");
+			}
+			case 2 -> {
+				modules.get(com.zerovisual.module.impl.cosmetics.Halo.class).setEnabled(false);
+				mc.options.fov().set(70);
+				hideGui(mc, false);
+			}
+			default -> mc.stop();
+		}
+		step++;
+	}
+
 	private static void seasons(Minecraft mc) {
 		String[] modes = {"Autumn", "Winter", "Spring", "Summer"};
 		int n = step - SEASONS_STEP, season = n / 10;
@@ -115,6 +146,38 @@ public final class DevScreenshots {
 			module.setEnabled(true);
 		}
 		if (n % 10 == 9) timedShots.put(ticks + 5, "zv_seasons_" + modes[season].toLowerCase());
+		step++;
+	}
+
+	/** The music player (--zvDevShotFrom 500; needs a relay with /music: -Dzerovisual.relay=ws://127.0.0.1:8799). */
+	private static final int MUSIC_STEP = 500;
+
+	private static void music(Minecraft mc) {
+		int n = step - MUSIC_STEP;
+		switch (n) {
+			case 0 -> mc.gui.setScreen(new com.zerovisual.gui.MusicScreen(null));
+			case 3 -> shot(mc, "zv_music_popular");
+			case 4 -> com.zerovisual.gui.MusicScreen.devPlay(0);
+			case 5, 6, 7 -> ZeroVisualClient.LOGGER.info("[music] {} at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.current() == null ? "nothing" : com.zerovisual.music.MusicPlayer.current().title,
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 8 -> shot(mc, "zv_music_playing");
+			case 9 -> com.zerovisual.gui.MusicScreen.devSearch("макс корж");
+			case 12 -> shot(mc, "zv_music_search");
+			case 13 -> com.zerovisual.gui.MusicScreen.devTab(1);
+			case 14 -> shot(mc, "zv_music_together");
+			case 15 -> {
+				mc.gui.setScreen(null);
+				com.zerovisual.music.MusicPlayer.seek(60_000);
+			}
+			case 16, 17, 18 -> ZeroVisualClient.LOGGER.info("[music] after seek at {} ms, loading {}",
+				com.zerovisual.music.MusicPlayer.position(), com.zerovisual.music.MusicPlayer.isLoading());
+			case 19 -> shot(mc, "zv_music_hud");
+			case 20 -> com.zerovisual.music.MusicPlayer.stop();
+			case 21 -> mc.stop();
+			default -> {
+			}
+		}
 		step++;
 	}
 
@@ -137,6 +200,14 @@ public final class DevScreenshots {
 		}
 		if (timedShots.containsKey(ticks)) shot(mc, timedShots.remove(ticks));
 		if (ticks < 100 || ticks % 30 != 0) return;
+		if (step >= MUSIC_STEP) {
+			music(mc);
+			return;
+		}
+		if (step >= HALO_STEP) {
+			halo(mc);
+			return;
+		}
 		if (step >= SEASONS_STEP) {
 			seasons(mc);
 			return;

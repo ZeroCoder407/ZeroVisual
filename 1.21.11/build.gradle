@@ -30,6 +30,10 @@ dependencies {
 	// Mod Menu (optional integration; present in dev runtime)
 	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 	modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+	// MP3 decoder for the music player (MIT), packed into the mod jar
+	implementation "fr.delthas:javamp3:1.0.1"
+	include "fr.delthas:javamp3:1.0.1"
 }
 
 processResources {

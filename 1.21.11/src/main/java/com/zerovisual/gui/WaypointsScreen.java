@@ -68,7 +68,8 @@ public class WaypointsScreen extends Screen {
 		nameField.setBordered(false);
 		nameField.setMaxLength(32);
 		nameField.setHint(Component.translatable("zerovisual.waypoints.placeholder").withStyle(ChatFormatting.DARK_GRAY));
-		nameField.setTextColor(Theme.TEXT & 0xFFFFFF);
+		// ARGB since 1.21.6: without the alpha the text would be invisible
+		nameField.setTextColor(Theme.TEXT);
 		addRenderableWidget(nameField);
 		setInitialFocus(nameField);
 	}
